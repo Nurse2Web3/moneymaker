@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/tubemagic-clone/"
+title = "TubeMagic Clone"
+version = "1.0.0"
+id = "artifacts/tubemagic-clone"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/tubemagic-clone/" ]
+localPort = 22620
+
+[services.development]
+run = "pnpm --filter @workspace/tubemagic-clone run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/tubemagic-clone", "run", "build" ]
+publicDir = "artifacts/tubemagic-clone/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22620"
+BASE_PATH = "/tubemagic-clone/"
