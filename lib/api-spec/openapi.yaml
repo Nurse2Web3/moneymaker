@@ -1,6 +1,5 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
   description: API specification
@@ -10,13 +9,16 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: scripts
+    description: YouTube script generation tools
+  - name: tools
+    description: YouTube channel tools
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +26,94 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /scripts/generate:
+    post:
+      operationId: generateScript
+      tags: [scripts]
+      summary: Generate a YouTube script with tension engine (SSE stream)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateScriptBody"
+      responses:
+        "200":
+          description: SSE stream of script chunks
+          content:
+            text/event-stream: {}
+  /tools/titles:
+    post:
+      operationId: generateTitles
+      tags: [tools]
+      summary: Generate viral YouTube titles
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateTitlesBody"
+      responses:
+        "200":
+          description: Generated titles
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerateTitlesResponse"
+  /tools/ideas:
+    post:
+      operationId: generateIdeas
+      tags: [tools]
+      summary: Generate video ideas for a niche/channel
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateIdeasBody"
+      responses:
+        "200":
+          description: Generated video ideas
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerateIdeasResponse"
+  /tools/description:
+    post:
+      operationId: generateDescription
+      tags: [tools]
+      summary: Generate YouTube video description
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateDescriptionBody"
+      responses:
+        "200":
+          description: Generated description
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerateDescriptionResponse"
+  /tools/tags:
+    post:
+      operationId: generateTags
+      tags: [tools]
+      summary: Generate YouTube tags
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateTagsBody"
+      responses:
+        "200":
+          description: Generated tags
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerateTagsResponse"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +123,109 @@ components:
           type: string
       required:
         - status
-
+    GenerateScriptBody:
+      type: object
+      properties:
+        topic:
+          type: string
+        channelStyle:
+          type: string
+        videoLength:
+          type: string
+          enum: [100, 800, 1500, 3000]
+        tensionLevel:
+          type: string
+          enum: [low, medium, high, extreme]
+        tensionTechniques:
+          type: array
+          items:
+            type: string
+        inspirationLinks:
+          type: string
+        model:
+          type: string
+      required:
+        - topic
+        - videoLength
+        - tensionLevel
+    GenerateTitlesBody:
+      type: object
+      properties:
+        topic:
+          type: string
+        channelNiche:
+          type: string
+      required:
+        - topic
+    GenerateTitlesResponse:
+      type: object
+      properties:
+        titles:
+          type: array
+          items:
+            type: string
+      required:
+        - titles
+    GenerateIdeasBody:
+      type: object
+      properties:
+        channelNiche:
+          type: string
+        count:
+          type: integer
+      required:
+        - channelNiche
+    GenerateIdeasResponse:
+      type: object
+      properties:
+        ideas:
+          type: array
+          items:
+            type: object
+            properties:
+              title:
+                type: string
+              description:
+                type: string
+              estimatedViews:
+                type: string
+            required:
+              - title
+              - description
+              - estimatedViews
+      required:
+        - ideas
+    GenerateDescriptionBody:
+      type: object
+      properties:
+        title:
+          type: string
+        script:
+          type: string
+      required:
+        - title
+    GenerateDescriptionResponse:
+      type: object
+      properties:
+        description:
+          type: string
+      required:
+        - description
+    GenerateTagsBody:
+      type: object
+      properties:
+        title:
+          type: string
+        topic:
+          type: string
+      required:
+        - title
+    GenerateTagsResponse:
+      type: object
+      properties:
+        tags:
+          type: array
+          items:
+            type: string
+      required:
+        - tags

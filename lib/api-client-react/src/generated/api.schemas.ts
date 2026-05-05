@@ -8,3 +8,75 @@
 export interface HealthStatus {
   status: string;
 }
+
+export type GenerateScriptBodyVideoLength =
+  (typeof GenerateScriptBodyVideoLength)[keyof typeof GenerateScriptBodyVideoLength];
+
+export const GenerateScriptBodyVideoLength = {
+  NUMBER_100: 100,
+  NUMBER_800: 800,
+  NUMBER_1500: 1500,
+  NUMBER_3000: 3000,
+} as const;
+
+export type GenerateScriptBodyTensionLevel =
+  (typeof GenerateScriptBodyTensionLevel)[keyof typeof GenerateScriptBodyTensionLevel];
+
+export const GenerateScriptBodyTensionLevel = {
+  low: "low",
+  medium: "medium",
+  high: "high",
+  extreme: "extreme",
+} as const;
+
+export interface GenerateScriptBody {
+  topic: string;
+  channelStyle?: string;
+  videoLength: GenerateScriptBodyVideoLength;
+  tensionLevel: GenerateScriptBodyTensionLevel;
+  tensionTechniques?: string[];
+  inspirationLinks?: string;
+  model?: string;
+}
+
+export interface GenerateTitlesBody {
+  topic: string;
+  channelNiche?: string;
+}
+
+export interface GenerateTitlesResponse {
+  titles: string[];
+}
+
+export interface GenerateIdeasBody {
+  channelNiche: string;
+  count?: number;
+}
+
+export type GenerateIdeasResponseIdeasItem = {
+  title: string;
+  description: string;
+  estimatedViews: string;
+};
+
+export interface GenerateIdeasResponse {
+  ideas: GenerateIdeasResponseIdeasItem[];
+}
+
+export interface GenerateDescriptionBody {
+  title: string;
+  script?: string;
+}
+
+export interface GenerateDescriptionResponse {
+  description: string;
+}
+
+export interface GenerateTagsBody {
+  title: string;
+  topic?: string;
+}
+
+export interface GenerateTagsResponse {
+  tags: string[];
+}

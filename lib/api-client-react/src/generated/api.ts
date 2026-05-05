@@ -5,18 +5,32 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import type {
+  MutationFunction,
   QueryFunction,
   QueryKey,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult,
 } from "@tanstack/react-query";
 
-import type { HealthStatus } from "./api.schemas";
+import type {
+  GenerateDescriptionBody,
+  GenerateDescriptionResponse,
+  GenerateIdeasBody,
+  GenerateIdeasResponse,
+  GenerateScriptBody,
+  GenerateTagsBody,
+  GenerateTagsResponse,
+  GenerateTitlesBody,
+  GenerateTitlesResponse,
+  HealthStatus,
+} from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
-import type { ErrorType } from "../custom-fetch";
+import type { ErrorType, BodyType } from "../custom-fetch";
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 
@@ -25,7 +39,6 @@ type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 /**
- * Returns server health status
  * @summary Health check
  */
 export const getHealthCheckUrl = () => {
@@ -99,3 +112,433 @@ export function useHealthCheck<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Generate a YouTube script with tension engine (SSE stream)
+ */
+export const getGenerateScriptUrl = () => {
+  return `/api/scripts/generate`;
+};
+
+export const generateScript = async (
+  generateScriptBody: GenerateScriptBody,
+  options?: RequestInit,
+): Promise<unknown> => {
+  return customFetch<unknown>(getGenerateScriptUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(generateScriptBody),
+  });
+};
+
+export const getGenerateScriptMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateScript>>,
+    TError,
+    { data: BodyType<GenerateScriptBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof generateScript>>,
+  TError,
+  { data: BodyType<GenerateScriptBody> },
+  TContext
+> => {
+  const mutationKey = ["generateScript"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof generateScript>>,
+    { data: BodyType<GenerateScriptBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return generateScript(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GenerateScriptMutationResult = NonNullable<
+  Awaited<ReturnType<typeof generateScript>>
+>;
+export type GenerateScriptMutationBody = BodyType<GenerateScriptBody>;
+export type GenerateScriptMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Generate a YouTube script with tension engine (SSE stream)
+ */
+export const useGenerateScript = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateScript>>,
+    TError,
+    { data: BodyType<GenerateScriptBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof generateScript>>,
+  TError,
+  { data: BodyType<GenerateScriptBody> },
+  TContext
+> => {
+  return useMutation(getGenerateScriptMutationOptions(options));
+};
+
+/**
+ * @summary Generate viral YouTube titles
+ */
+export const getGenerateTitlesUrl = () => {
+  return `/api/tools/titles`;
+};
+
+export const generateTitles = async (
+  generateTitlesBody: GenerateTitlesBody,
+  options?: RequestInit,
+): Promise<GenerateTitlesResponse> => {
+  return customFetch<GenerateTitlesResponse>(getGenerateTitlesUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(generateTitlesBody),
+  });
+};
+
+export const getGenerateTitlesMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateTitles>>,
+    TError,
+    { data: BodyType<GenerateTitlesBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof generateTitles>>,
+  TError,
+  { data: BodyType<GenerateTitlesBody> },
+  TContext
+> => {
+  const mutationKey = ["generateTitles"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof generateTitles>>,
+    { data: BodyType<GenerateTitlesBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return generateTitles(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GenerateTitlesMutationResult = NonNullable<
+  Awaited<ReturnType<typeof generateTitles>>
+>;
+export type GenerateTitlesMutationBody = BodyType<GenerateTitlesBody>;
+export type GenerateTitlesMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Generate viral YouTube titles
+ */
+export const useGenerateTitles = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateTitles>>,
+    TError,
+    { data: BodyType<GenerateTitlesBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof generateTitles>>,
+  TError,
+  { data: BodyType<GenerateTitlesBody> },
+  TContext
+> => {
+  return useMutation(getGenerateTitlesMutationOptions(options));
+};
+
+/**
+ * @summary Generate video ideas for a niche/channel
+ */
+export const getGenerateIdeasUrl = () => {
+  return `/api/tools/ideas`;
+};
+
+export const generateIdeas = async (
+  generateIdeasBody: GenerateIdeasBody,
+  options?: RequestInit,
+): Promise<GenerateIdeasResponse> => {
+  return customFetch<GenerateIdeasResponse>(getGenerateIdeasUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(generateIdeasBody),
+  });
+};
+
+export const getGenerateIdeasMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateIdeas>>,
+    TError,
+    { data: BodyType<GenerateIdeasBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof generateIdeas>>,
+  TError,
+  { data: BodyType<GenerateIdeasBody> },
+  TContext
+> => {
+  const mutationKey = ["generateIdeas"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof generateIdeas>>,
+    { data: BodyType<GenerateIdeasBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return generateIdeas(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GenerateIdeasMutationResult = NonNullable<
+  Awaited<ReturnType<typeof generateIdeas>>
+>;
+export type GenerateIdeasMutationBody = BodyType<GenerateIdeasBody>;
+export type GenerateIdeasMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Generate video ideas for a niche/channel
+ */
+export const useGenerateIdeas = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateIdeas>>,
+    TError,
+    { data: BodyType<GenerateIdeasBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof generateIdeas>>,
+  TError,
+  { data: BodyType<GenerateIdeasBody> },
+  TContext
+> => {
+  return useMutation(getGenerateIdeasMutationOptions(options));
+};
+
+/**
+ * @summary Generate YouTube video description
+ */
+export const getGenerateDescriptionUrl = () => {
+  return `/api/tools/description`;
+};
+
+export const generateDescription = async (
+  generateDescriptionBody: GenerateDescriptionBody,
+  options?: RequestInit,
+): Promise<GenerateDescriptionResponse> => {
+  return customFetch<GenerateDescriptionResponse>(getGenerateDescriptionUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(generateDescriptionBody),
+  });
+};
+
+export const getGenerateDescriptionMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateDescription>>,
+    TError,
+    { data: BodyType<GenerateDescriptionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof generateDescription>>,
+  TError,
+  { data: BodyType<GenerateDescriptionBody> },
+  TContext
+> => {
+  const mutationKey = ["generateDescription"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof generateDescription>>,
+    { data: BodyType<GenerateDescriptionBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return generateDescription(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GenerateDescriptionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof generateDescription>>
+>;
+export type GenerateDescriptionMutationBody = BodyType<GenerateDescriptionBody>;
+export type GenerateDescriptionMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Generate YouTube video description
+ */
+export const useGenerateDescription = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateDescription>>,
+    TError,
+    { data: BodyType<GenerateDescriptionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof generateDescription>>,
+  TError,
+  { data: BodyType<GenerateDescriptionBody> },
+  TContext
+> => {
+  return useMutation(getGenerateDescriptionMutationOptions(options));
+};
+
+/**
+ * @summary Generate YouTube tags
+ */
+export const getGenerateTagsUrl = () => {
+  return `/api/tools/tags`;
+};
+
+export const generateTags = async (
+  generateTagsBody: GenerateTagsBody,
+  options?: RequestInit,
+): Promise<GenerateTagsResponse> => {
+  return customFetch<GenerateTagsResponse>(getGenerateTagsUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(generateTagsBody),
+  });
+};
+
+export const getGenerateTagsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateTags>>,
+    TError,
+    { data: BodyType<GenerateTagsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof generateTags>>,
+  TError,
+  { data: BodyType<GenerateTagsBody> },
+  TContext
+> => {
+  const mutationKey = ["generateTags"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof generateTags>>,
+    { data: BodyType<GenerateTagsBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return generateTags(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GenerateTagsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof generateTags>>
+>;
+export type GenerateTagsMutationBody = BodyType<GenerateTagsBody>;
+export type GenerateTagsMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Generate YouTube tags
+ */
+export const useGenerateTags = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateTags>>,
+    TError,
+    { data: BodyType<GenerateTagsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof generateTags>>,
+  TError,
+  { data: BodyType<GenerateTagsBody> },
+  TContext
+> => {
+  return useMutation(getGenerateTagsMutationOptions(options));
+};

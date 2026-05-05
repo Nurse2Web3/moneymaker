@@ -8,9 +8,80 @@
 import * as zod from "zod";
 
 /**
- * Returns server health status
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({
   status: zod.string(),
+});
+
+/**
+ * @summary Generate a YouTube script with tension engine (SSE stream)
+ */
+export const GenerateScriptBody = zod.object({
+  topic: zod.string(),
+  channelStyle: zod.string().optional(),
+  videoLength: zod.union([
+    zod.literal(100),
+    zod.literal(800),
+    zod.literal(1500),
+    zod.literal(3000),
+  ]),
+  tensionLevel: zod.enum(["low", "medium", "high", "extreme"]),
+  tensionTechniques: zod.array(zod.string()).optional(),
+  inspirationLinks: zod.string().optional(),
+  model: zod.string().optional(),
+});
+
+/**
+ * @summary Generate viral YouTube titles
+ */
+export const GenerateTitlesBody = zod.object({
+  topic: zod.string(),
+  channelNiche: zod.string().optional(),
+});
+
+export const GenerateTitlesResponse = zod.object({
+  titles: zod.array(zod.string()),
+});
+
+/**
+ * @summary Generate video ideas for a niche/channel
+ */
+export const GenerateIdeasBody = zod.object({
+  channelNiche: zod.string(),
+  count: zod.number().optional(),
+});
+
+export const GenerateIdeasResponse = zod.object({
+  ideas: zod.array(
+    zod.object({
+      title: zod.string(),
+      description: zod.string(),
+      estimatedViews: zod.string(),
+    }),
+  ),
+});
+
+/**
+ * @summary Generate YouTube video description
+ */
+export const GenerateDescriptionBody = zod.object({
+  title: zod.string(),
+  script: zod.string().optional(),
+});
+
+export const GenerateDescriptionResponse = zod.object({
+  description: zod.string(),
+});
+
+/**
+ * @summary Generate YouTube tags
+ */
+export const GenerateTagsBody = zod.object({
+  title: zod.string(),
+  topic: zod.string().optional(),
+});
+
+export const GenerateTagsResponse = zod.object({
+  tags: zod.array(zod.string()),
 });

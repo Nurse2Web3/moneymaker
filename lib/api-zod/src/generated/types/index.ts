@@ -6,4 +6,16 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./generateDescriptionBody";
+export * from "./generateDescriptionResponse";
+export * from "./generateIdeasBody";
+export * from "./generateIdeasResponse";
+export * from "./generateIdeasResponseIdeasItem";
+export * from "./generateScriptBody";
+export * from "./generateScriptBodyTensionLevel";
+export * from "./generateScriptBodyVideoLength";
+export * from "./generateTagsBody";
+export * from "./generateTagsResponse";
+export * from "./generateTitlesBody";
+export * from "./generateTitlesResponse";
 export * from "./healthStatus";

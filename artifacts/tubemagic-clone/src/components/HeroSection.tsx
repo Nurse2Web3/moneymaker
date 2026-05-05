@@ -1,4 +1,8 @@
-export default function HeroSection() {
+interface Props {
+  onGetStarted: () => void;
+}
+
+export default function HeroSection({ onGetStarted }: Props) {
   const checks = ['Training Data', 'Multiple Models', 'Inspiration Videos', 'Custom Length', 'Writing Style', 'Editable'];
 
   return (
@@ -7,39 +11,31 @@ export default function HeroSection() {
         AI YouTube Script Writer
       </p>
       <h1 style={{
-        fontSize: 'clamp(32px, 4vw, 52px)',
-        fontWeight: 700,
-        letterSpacing: '-1px',
-        lineHeight: 1.15,
-        maxWidth: '760px',
-        margin: '0 auto 40px',
-        color: '#fff',
+        fontSize: 'clamp(32px, 4vw, 52px)', fontWeight: 700, letterSpacing: '-1px',
+        lineHeight: 1.15, maxWidth: '760px', margin: '0 auto 32px', color: '#fff',
       }}>
         Generate world-class YouTube scripts that sound like they were written by someone you paid thousands for.
       </h1>
 
-      {/* App screenshot mock */}
+      <button onClick={onGetStarted} style={{
+        background: '#fff', color: '#000', padding: '13px 28px', borderRadius: '10px',
+        fontSize: '15px', fontWeight: 600, border: 'none', cursor: 'pointer', marginBottom: '48px',
+      }}>
+        ✦ Try Script Writer Free
+      </button>
+
       <div style={{
-        margin: '0 auto 40px',
-        maxWidth: '760px',
-        borderRadius: '14px',
-        overflow: 'hidden',
-        border: '1px solid rgba(255,255,255,0.1)',
-        boxShadow: '0 30px 80px rgba(0,0,0,0.6)',
-        background: '#111',
+        margin: '0 auto 40px', maxWidth: '760px', borderRadius: '14px', overflow: 'hidden',
+        border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 30px 80px rgba(0,0,0,0.6)', background: '#111',
       }}>
         <img
           src="https://tubemagic.com/_next/image?url=%2Ffeatures%2Ffeatures-1.png&w=1920&q=75"
           alt="TubeMagic Script Writer"
           style={{ width: '100%', display: 'block' }}
-          onError={(e) => {
-            (e.target as HTMLImageElement).style.display = 'none';
-          }}
+          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
         />
-        <AppScreenshot />
       </div>
 
-      {/* Feature badges */}
       <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '16px 32px' }}>
         {checks.map(c => (
           <div key={c} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'rgba(255,255,255,0.7)' }}>
@@ -51,11 +47,5 @@ export default function HeroSection() {
         ))}
       </div>
     </section>
-  );
-}
-
-function AppScreenshot() {
-  return (
-    <div style={{ display: 'none' }} />
   );
 }
