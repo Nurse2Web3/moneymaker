@@ -63,8 +63,8 @@ export default function DescriptionGenerator() {
         </div>
         <button
           onClick={generate}
-          disabled={!title.trim() || loading}
-          style={{ padding: '12px', borderRadius: '10px', background: '#fff', color: '#000', fontWeight: 600, fontSize: '17px', cursor: title.trim() && !loading ? 'pointer' : 'not-allowed', opacity: (!title.trim() || loading) ? 0.5 : 1, border: 'none' }}
+          disabled={!canGenerate || loading}
+          style={{ padding: '12px', borderRadius: '10px', background: '#fff', color: '#000', fontWeight: 600, fontSize: '17px', cursor: canGenerate && !loading ? 'pointer' : 'not-allowed', opacity: (!canGenerate || loading) ? 0.5 : 1, border: 'none' }}
         >
           {loading ? 'Generating...' : '✦ Generate Description'}
         </button>
