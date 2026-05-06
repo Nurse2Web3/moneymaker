@@ -177,4 +177,223 @@ Return ONLY a JSON array of tag strings: ["tag1", "tag2", ...]`,
   }
 });
 
+router.post("/tools/improve-script", async (req, res): Promise<void> => {
+  const { script, focusAreas } = req.body as { script: string; focusAreas?: string[] };
+  if (!script?.trim()) {
+    res.status(400).json({ error: "script is required" });
+    return;
+  }
+
+  const areas = (focusAreas || []).join(", ") || "hooks, open loops, pacing, pattern interrupts, CTA";
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+
+  try {
+    const stream = anthropic.messages.stream({
+      model: "claude-sonnet-4-6",
+      max_tokens: 8192,
+      system: `You are an elite YouTube script editor trained on the highest-retention videos ever made. Your job is to rewrite scripts using the TENSION ENGINE — making them dramatically more engaging without changing the core topic or information.
+
+REWRITING RULES:
+- Keep all the same information and key points
+- Transform weak openers into powerful hooks
+- Add open loops that keep viewers watching
+- Insert pattern interrupts every 60-90 seconds
+- Escalate stakes throughout
+- End every section with a micro-hook to the next
+- Rewrite the CTA to feel urgent and personal
+- The rewritten script should feel like a completely different, dramatically more engaging version
+
+Current year: ${CURRENT_YEAR}`,
+      messages: [{
+        role: "user",
+        content: `Rewrite this YouTube script with a focus on: ${areas}
+
+ORIGINAL SCRIPT:
+${script}
+
+Rewrite the entire script from top to bottom, applying the tension engine throughout. Mark significantly improved sections with [IMPROVED] at the start of that section. Keep the same structure and information but make every sentence earn its place.`,
+      }],
+    });
+
+    for await (const event of stream) {
+      if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+        res.write(`data: ${JSON.stringify({ content: event.delta.text })}\n\n`);
+      }
+    }
+    res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+    res.end();
+  } catch (err) {
+    req.log.error({ err }, "Script improvement failed");
+    res.write(`data: ${JSON.stringify({ error: "Script improvement failed. Please try again." })}\n\n`);
+    res.end();
+  }
+});
+
+router.post("/tools/hooks", async (req, res): Promise<void> => {
+  const { topic } = req.body as { topic: string };
+  if (!topic?.trim()) {
+    res.status(400).json({ error: "topic is required" });
+    return;
+  }
+
+  try {
+    const message = await anthropic.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 8192,
+      messages: [{
+        role: "user",
+        content: `Generate exactly 6 viral YouTube video hooks for the topic: "${topic}"
+
+Current year: ${CURRENT_YEAR}
+
+Generate one hook for each of these styles:
+1. Bold Claim
+2. Shocking Stat
+3. Question
+4. Personal Story
+5. Controversy
+6. Pattern Interrupt
+
+For each hook provide:
+- The hook text (2-4 sentences max, spoken naturally as if starting a video)
+- The style name (exactly as listed above)
+- A brief "why it works" explanation (1 sentence)
+
+Return ONLY valid JSON array:
+[
+  {
+    "style": "Bold Claim",
+    "hook": "The hook text here...",
+    "why": "Why this hook works in one sentence."
+  }
+]`,
+      }],
+    });
+
+    const text = message.content[0].type === "text" ? message.content[0].text : "[]";
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    const hooks = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+    res.json({ hooks });
+  } catch (err) {
+    req.log.error({ err }, "Hook generation failed");
+    res.status(500).json({ error: "Hook generation failed" });
+  }
+});
+
+router.post("/tools/thumbnail-text", async (req, res): Promise<void> => {
+  const { title, niche } = req.body as { title: string; niche?: string };
+  if (!title?.trim()) {
+    res.status(400).json({ error: "title is required" });
+    return;
+  }
+
+  try {
+    const message = await anthropic.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 8192,
+      messages: [{
+        role: "user",
+        content: `Generate 5 high-CTR thumbnail text overlay suggestions for a YouTube video titled: "${title}"${niche ? ` in the ${niche} niche` : ""}.
+
+Current year: ${CURRENT_YEAR}
+
+Thumbnail text must:
+- Be SHORT (main text: 1-5 words max, sub text: 2-6 words max)
+- Create curiosity or urgency at a glance
+- Work visually on a thumbnail (all caps is common)
+- Not repeat the full title
+
+For each suggestion provide:
+- mainText: The primary large text (1-5 words, usually all caps)
+- subText: Secondary smaller text or empty string if not needed (2-6 words)
+- style: One of "Number/List", "Shock/Curiosity", "Personal Result", "Versus/Comparison", "Question", "Bold Statement"
+- colorScheme: Brief color suggestion (e.g. "Red + White", "Yellow + Black")
+- why: One sentence explaining why it drives clicks
+
+Return ONLY valid JSON array:
+[
+  {
+    "mainText": "I TRIED THIS",
+    "subText": "for 30 days straight",
+    "style": "Personal Result",
+    "colorScheme": "Yellow + Black",
+    "why": "First-person framing creates curiosity about the result."
+  }
+]`,
+      }],
+    });
+
+    const text = message.content[0].type === "text" ? message.content[0].text : "[]";
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    const suggestions = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+    res.json({ suggestions });
+  } catch (err) {
+    req.log.error({ err }, "Thumbnail text generation failed");
+    res.status(500).json({ error: "Thumbnail text generation failed" });
+  }
+});
+
+router.post("/tools/niche-analysis", async (req, res): Promise<void> => {
+  const { niche, channelDescription } = req.body as { niche: string; channelDescription?: string };
+  if (!niche?.trim()) {
+    res.status(400).json({ error: "niche is required" });
+    return;
+  }
+
+  try {
+    const message = await anthropic.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 8192,
+      messages: [{
+        role: "user",
+        content: `Perform a deep content strategy analysis for a YouTube channel in the "${niche}" niche.
+${channelDescription ? `Channel description: ${channelDescription}` : ""}
+
+Current year: ${CURRENT_YEAR}
+
+Return a comprehensive analysis as valid JSON with this exact structure:
+{
+  "summary": "2-3 sentence overview of this niche's current landscape and opportunity level",
+  "opportunities": [
+    {
+      "title": "Specific content opportunity title",
+      "description": "2 sentence description of what to make and why it works",
+      "potential": "High|Viral|Medium"
+    }
+  ],
+  "contentGaps": [
+    {
+      "gap": "Specific underserved content area",
+      "why": "Why this gap exists and how to exploit it"
+    }
+  ],
+  "topFormats": [
+    {
+      "format": "Format name",
+      "description": "Why this format works in this niche",
+      "examples": "2-3 example video titles using this format"
+    }
+  ],
+  "avoidMistakes": ["Mistake 1", "Mistake 2", "Mistake 3", "Mistake 4"],
+  "quickWins": ["Quick win 1", "Quick win 2", "Quick win 3", "Quick win 4", "Quick win 5"]
+}
+
+Provide exactly: 4 opportunities, 4 content gaps, 3 top formats, 4 mistakes, 5 quick wins.
+Return ONLY the JSON object, no extra text.`,
+      }],
+    });
+
+    const text = message.content[0].type === "text" ? message.content[0].text : "{}";
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    const analysis = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
+    res.json({ analysis });
+  } catch (err) {
+    req.log.error({ err }, "Niche analysis failed");
+    res.status(500).json({ error: "Niche analysis failed" });
+  }
+});
+
 export default router;

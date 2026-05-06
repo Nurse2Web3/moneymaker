@@ -37,17 +37,22 @@ See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and pa
 **Pages (via useState routing in App.tsx):**
 - `home` — Marketing landing page (hero, sections, FAQ, footer)
 - `script-writer` — AI script writer with tension engine (SSE streaming)
+- `script-improver` — Paste existing script, AI rewrites with tension engine (SSE streaming)
+- `hook-generator` — 6 viral hook styles for any topic
 - `idea-generator` — Video idea generator by niche
+- `niche-analyzer` — Content strategy: opportunities, gaps, formats, quick wins
 - `title-generator` — 5 viral title generator
 - `description-generator` — SEO description with timestamps
 - `tag-generator` — High-SEO tag generator with toggle-select
+- `thumbnail-generator` — High-CTR thumbnail text overlay suggestions
+
+**Navbar:** Dropdown "⚡ Tools" menu with 3 groups — Scripts, Research, Optimize
 
 **Components:**
-- `src/components/ScriptWriter.tsx` — Full script writer with tension engine controls
-- `src/components/TitleGenerator.tsx` — Title generation tool
-- `src/components/IdeaGenerator.tsx` — Video idea generation tool
-- `src/components/DescriptionGenerator.tsx` — Description generation tool
-- `src/components/TagGenerator.tsx` — Tag generation tool with clickable chip selection
+- `src/components/ScriptWriter.tsx`, `ScriptImprover.tsx` — Script tools (SSE streaming)
+- `src/components/HookGenerator.tsx` — 6 hook style variants
+- `src/components/TitleGenerator.tsx`, `DescriptionGenerator.tsx`, `TagGenerator.tsx`, `ThumbnailGenerator.tsx` — Optimize tools
+- `src/components/IdeaGenerator.tsx`, `NicheAnalyzer.tsx` — Research tools
 - `src/components/HeroSection.tsx`, `ScriptWritingSection.tsx`, `VideoIdeasSection.tsx`, etc. — Landing page marketing sections
 
 ### API Server (`artifacts/api-server/`)
@@ -56,10 +61,14 @@ See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and pa
 
 **AI Endpoints (all powered by Claude Sonnet):**
 - `POST /api/scripts/generate` — SSE streaming script generation with Tension Engine
+- `POST /api/tools/improve-script` — SSE streaming script rewriter with tension engine focus areas
+- `POST /api/tools/hooks` — Generate 6 viral hook variants (bold claim, shocking stat, question, story, controversy, pattern interrupt)
 - `POST /api/tools/titles` — Generate 5 viral YouTube titles
 - `POST /api/tools/ideas` — Generate video ideas by niche
 - `POST /api/tools/description` — Generate SEO description with timestamps
 - `POST /api/tools/tags` — Generate 20 high-SEO tags
+- `POST /api/tools/thumbnail-text` — Generate 5 high-CTR thumbnail text overlays
+- `POST /api/tools/niche-analysis` — Full content strategy analysis (opportunities, gaps, formats, mistakes, quick wins)
 
 **Tension Engine (Script Writer):**
 - Levels: low, medium, high, extreme
