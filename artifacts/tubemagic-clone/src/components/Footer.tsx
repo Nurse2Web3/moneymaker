@@ -8,14 +8,14 @@ export default function Footer() {
       justifyContent: 'space-between',
       background: '#0a0a0a',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600, fontSize: '15px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600, fontSize: '17px' }}>
         <svg width="16" height="16" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M9 0L16.5 4.5V13.5L9 18L1.5 13.5V4.5L9 0Z" fill="white"/>
           <path d="M6 6.5L12 9L6 11.5V6.5Z" fill="black"/>
         </svg>
         MoneyMaker
       </div>
-      <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.35)' }}>
+      <p style={{ fontSize: '17px', color: 'rgba(255,255,255,0.35)' }}>
         © 2026 MoneyMaker. All rights reserved.
       </p>
     </footer>

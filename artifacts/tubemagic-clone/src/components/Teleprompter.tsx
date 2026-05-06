@@ -178,21 +178,21 @@ export default function Teleprompter() {
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px', gap: '16px',
         }}>
           {/* Timer */}
-          <div style={{ fontSize: '14px', fontWeight: 600, color: playing ? '#22c55e' : 'rgba(255,255,255,0.4)', minWidth: '60px', fontFamily: 'monospace' }}>
+          <div style={{ fontSize: '24px', fontWeight: 600, color: playing ? '#22c55e' : 'rgba(255,255,255,0.4)', minWidth: '60px', fontFamily: 'monospace' }}>
             {playing && <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444', marginRight: '8px', animation: 'pulse 1s infinite' }} />}
             {formatTime(elapsed)}
           </div>
 
           {/* Center controls */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <button onClick={reset} style={{ padding: '8px 16px', borderRadius: '8px', background: 'rgba(255,255,255,0.08)', border: 'none', color: '#fff', fontSize: '13px', cursor: 'pointer' }}>↺ Reset</button>
+            <button onClick={reset} style={{ padding: '8px 16px', borderRadius: '8px', background: 'rgba(255,255,255,0.08)', border: 'none', color: '#fff', fontSize: '17px', cursor: 'pointer' }}>↺ Reset</button>
 
             <button onClick={() => { playing ? setPlaying(false) : (countdown === null ? beginCountdown() : null); }}
-              style={{ width: '56px', height: '56px', borderRadius: '50%', background: playing ? 'rgba(239,68,68,0.2)' : '#fff', border: playing ? '2px solid #ef4444' : 'none', color: playing ? '#ef4444' : '#000', fontSize: '22px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>
+              style={{ width: '56px', height: '56px', borderRadius: '50%', background: playing ? 'rgba(239,68,68,0.2)' : '#fff', border: playing ? '2px solid #ef4444' : 'none', color: playing ? '#ef4444' : '#000', fontSize: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>
               {playing ? '⏸' : '▶'}
             </button>
 
-            <button onClick={toggleCamera} style={{ padding: '8px 14px', borderRadius: '8px', background: cameraOn ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.08)', border: `1px solid ${cameraOn ? 'rgba(34,197,94,0.4)' : 'transparent'}`, color: cameraOn ? '#22c55e' : 'rgba(255,255,255,0.6)', fontSize: '13px', cursor: 'pointer' }}>
+            <button onClick={toggleCamera} style={{ padding: '8px 14px', borderRadius: '8px', background: cameraOn ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.08)', border: `1px solid ${cameraOn ? 'rgba(34,197,94,0.4)' : 'transparent'}`, color: cameraOn ? '#22c55e' : 'rgba(255,255,255,0.6)', fontSize: '17px', cursor: 'pointer' }}>
               {cameraOn ? '📷 On' : '📷 Off'}
             </button>
           </div>
@@ -200,25 +200,25 @@ export default function Teleprompter() {
           {/* Speed + Font + Mirror + Exit */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>Speed</span>
-              <button onClick={() => setSpeed(s => Math.max(1, s - 1))} style={{ width: '26px', height: '26px', borderRadius: '6px', background: 'rgba(255,255,255,0.08)', border: 'none', color: '#fff', cursor: 'pointer', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
-              <span style={{ fontSize: '13px', fontWeight: 600, color: '#fff', minWidth: '16px', textAlign: 'center' }}>{speed}</span>
-              <button onClick={() => setSpeed(s => Math.min(10, s + 1))} style={{ width: '26px', height: '26px', borderRadius: '6px', background: 'rgba(255,255,255,0.08)', border: 'none', color: '#fff', cursor: 'pointer', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
+              <span style={{ fontSize: '17px', color: 'rgba(255,255,255,0.4)' }}>Speed</span>
+              <button onClick={() => setSpeed(s => Math.max(1, s - 1))} style={{ width: '26px', height: '26px', borderRadius: '6px', background: 'rgba(255,255,255,0.08)', border: 'none', color: '#fff', cursor: 'pointer', fontSize: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
+              <span style={{ fontSize: '17px', fontWeight: 600, color: '#fff', minWidth: '16px', textAlign: 'center' }}>{speed}</span>
+              <button onClick={() => setSpeed(s => Math.min(10, s + 1))} style={{ width: '26px', height: '26px', borderRadius: '6px', background: 'rgba(255,255,255,0.08)', border: 'none', color: '#fff', cursor: 'pointer', fontSize: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>Text</span>
-              <button onClick={() => setFontSize(s => Math.max(20, s - 4))} style={{ width: '26px', height: '26px', borderRadius: '6px', background: 'rgba(255,255,255,0.08)', border: 'none', color: '#fff', cursor: 'pointer', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>A</button>
-              <button onClick={() => setFontSize(s => Math.min(72, s + 4))} style={{ width: '26px', height: '26px', borderRadius: '6px', background: 'rgba(255,255,255,0.08)', border: 'none', color: '#fff', cursor: 'pointer', fontSize: '18px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>A</button>
+              <span style={{ fontSize: '17px', color: 'rgba(255,255,255,0.4)' }}>Text</span>
+              <button onClick={() => setFontSize(s => Math.max(20, s - 4))} style={{ width: '26px', height: '26px', borderRadius: '6px', background: 'rgba(255,255,255,0.08)', border: 'none', color: '#fff', cursor: 'pointer', fontSize: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>A</button>
+              <button onClick={() => setFontSize(s => Math.min(72, s + 4))} style={{ width: '26px', height: '26px', borderRadius: '6px', background: 'rgba(255,255,255,0.08)', border: 'none', color: '#fff', cursor: 'pointer', fontSize: '24px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>A</button>
             </div>
 
-            <button onClick={() => setMirror(m => !m)} style={{ padding: '6px 12px', borderRadius: '8px', background: mirror ? 'rgba(167,139,250,0.15)' : 'rgba(255,255,255,0.08)', border: `1px solid ${mirror ? 'rgba(167,139,250,0.4)' : 'transparent'}`, color: mirror ? '#a78bfa' : 'rgba(255,255,255,0.5)', fontSize: '12px', cursor: 'pointer' }}>⟺ Mirror</button>
+            <button onClick={() => setMirror(m => !m)} style={{ padding: '6px 12px', borderRadius: '8px', background: mirror ? 'rgba(167,139,250,0.15)' : 'rgba(255,255,255,0.08)', border: `1px solid ${mirror ? 'rgba(167,139,250,0.4)' : 'transparent'}`, color: mirror ? '#a78bfa' : 'rgba(255,255,255,0.5)', fontSize: '24px', cursor: 'pointer' }}>⟺ Mirror</button>
 
-            <button onClick={exit} style={{ padding: '8px 16px', borderRadius: '8px', background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', fontSize: '13px', cursor: 'pointer' }}>✕ Exit</button>
+            <button onClick={exit} style={{ padding: '8px 16px', borderRadius: '8px', background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', fontSize: '17px', cursor: 'pointer' }}>✕ Exit</button>
           </div>
         </div>
 
-        {cameraError && <div style={{ position: 'absolute', bottom: '90px', right: '24px', background: '#ff4d4d20', border: '1px solid #ff4d4d40', borderRadius: '8px', padding: '8px 14px', color: '#ff4d4d', fontSize: '12px' }}>{cameraError}</div>}
+        {cameraError && <div style={{ position: 'absolute', bottom: '90px', right: '24px', background: '#ff4d4d20', border: '1px solid #ff4d4d40', borderRadius: '8px', padding: '8px 14px', color: '#ff4d4d', fontSize: '24px' }}>{cameraError}</div>}
 
         <style>{`@keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.3} }`}</style>
       </div>
@@ -227,8 +227,8 @@ export default function Teleprompter() {
 
   return (
     <div style={{ maxWidth: '820px', margin: '0 auto', padding: '40px 24px' }}>
-      <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>Teleprompter</h1>
-      <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)', marginBottom: '28px' }}>Paste your script, hit Launch — full-screen auto-scroll while you record</p>
+      <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>Teleprompter</h1>
+      <p style={{ fontSize: '17px', color: 'rgba(255,255,255,0.45)', marginBottom: '28px' }}>Paste your script, hit Launch — full-screen auto-scroll while you record</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 240px', gap: '20px', alignItems: 'start' }}>
         {/* Script input */}
@@ -238,11 +238,11 @@ export default function Teleprompter() {
             onChange={e => setScript(e.target.value)}
             placeholder="Paste your script here — or generate one with Script Writer and copy it over..."
             rows={22}
-            style={{ width: '100%', background: '#111', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '16px', color: '#fff', fontSize: '14px', lineHeight: 1.7, resize: 'vertical', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
+            style={{ width: '100%', background: '#111', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '16px', color: '#fff', fontSize: '24px', lineHeight: 1.7, resize: 'vertical', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
           />
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
-            <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.25)' }}>{script.split(/\s+/).filter(Boolean).length} words · ~{Math.ceil(script.split(/\s+/).filter(Boolean).length / 130)} min read</span>
-            {script && <button onClick={() => setScript('')} style={{ fontSize: '11px', color: 'rgba(255,255,255,0.25)', background: 'none', border: 'none', cursor: 'pointer' }}>Clear</button>}
+            <span style={{ fontSize: '17px', color: 'rgba(255,255,255,0.25)' }}>{script.split(/\s+/).filter(Boolean).length} words · ~{Math.ceil(script.split(/\s+/).filter(Boolean).length / 130)} min read</span>
+            {script && <button onClick={() => setScript('')} style={{ fontSize: '17px', color: 'rgba(255,255,255,0.25)', background: 'none', border: 'none', cursor: 'pointer' }}>Clear</button>}
           </div>
         </div>
 
@@ -250,22 +250,22 @@ export default function Teleprompter() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <div style={{ background: '#111', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <div>
-              <label style={{ fontSize: '11px', fontWeight: 600, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '8px' }}>Scroll Speed</label>
+              <label style={{ fontSize: '17px', fontWeight: 600, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '8px' }}>Scroll Speed</label>
               <input type="range" min={1} max={10} value={speed} onChange={e => setSpeed(Number(e.target.value))}
                 style={{ width: '100%', accentColor: '#fff' }} />
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'rgba(255,255,255,0.3)', marginTop: '4px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '17px', color: 'rgba(255,255,255,0.3)', marginTop: '4px' }}>
                 <span>Slow</span><span style={{ color: '#fff', fontWeight: 600 }}>{speed}</span><span>Fast</span>
               </div>
             </div>
 
             <div>
-              <label style={{ fontSize: '11px', fontWeight: 600, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '8px' }}>Font Size: {fontSize}px</label>
+              <label style={{ fontSize: '17px', fontWeight: 600, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '8px' }}>Font Size: {fontSize}px</label>
               <input type="range" min={20} max={72} step={4} value={fontSize} onChange={e => setFontSize(Number(e.target.value))}
                 style={{ width: '100%', accentColor: '#fff' }} />
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>Mirror text</span>
+              <span style={{ fontSize: '24px', color: 'rgba(255,255,255,0.6)' }}>Mirror text</span>
               <button onClick={() => setMirror(m => !m)} style={{
                 width: '36px', height: '20px', borderRadius: '10px', border: 'none', cursor: 'pointer', position: 'relative',
                 background: mirror ? '#a78bfa' : 'rgba(255,255,255,0.15)',
@@ -276,7 +276,7 @@ export default function Teleprompter() {
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>Camera preview</span>
+              <span style={{ fontSize: '24px', color: 'rgba(255,255,255,0.6)' }}>Camera preview</span>
               <button onClick={toggleCamera} style={{
                 width: '36px', height: '20px', borderRadius: '10px', border: 'none', cursor: 'pointer', position: 'relative',
                 background: cameraOn ? '#22c55e' : 'rgba(255,255,255,0.15)',
@@ -285,10 +285,10 @@ export default function Teleprompter() {
                 <div style={{ position: 'absolute', top: '2px', left: cameraOn ? '18px' : '2px', width: '16px', height: '16px', borderRadius: '50%', background: '#fff', transition: 'left 0.2s' }} />
               </button>
             </div>
-            {cameraError && <div style={{ fontSize: '11px', color: '#f87171' }}>{cameraError}</div>}
+            {cameraError && <div style={{ fontSize: '17px', color: '#f87171' }}>{cameraError}</div>}
           </div>
 
-          <div style={{ background: '#111', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '14px', fontSize: '12px', color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>
+          <div style={{ background: '#111', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '14px', fontSize: '24px', color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>
             <div style={{ fontWeight: 600, color: 'rgba(255,255,255,0.6)', marginBottom: '6px' }}>Tips</div>
             <div>• Use Speed 2–4 for natural-sounding delivery</div>
             <div>• Enable Mirror if recording from a laptop with the screen visible in frame</div>
@@ -297,7 +297,7 @@ export default function Teleprompter() {
           </div>
 
           <button onClick={launch} disabled={!script.trim()} style={{
-            padding: '14px', borderRadius: '12px', fontWeight: 700, fontSize: '16px', border: 'none',
+            padding: '14px', borderRadius: '12px', fontWeight: 700, fontSize: '24px', border: 'none',
             background: script.trim() ? '#fff' : '#1a1a1a',
             color: script.trim() ? '#000' : 'rgba(255,255,255,0.2)',
             cursor: script.trim() ? 'pointer' : 'not-allowed',

@@ -15,8 +15,8 @@ export default function UploadOptimizeSection({ onTryTitles, onTryDesc, onTryTag
   return (
     <section style={{ padding: '80px 40px', background: '#0d0d0d' }}>
       <div style={{ maxWidth: '1120px', margin: '0 auto' }}>
-        <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)', letterSpacing: '0.05em', marginBottom: '18px', textAlign: 'center', fontWeight: 500, textTransform: 'uppercase' }}>Upload & Optimize</p>
-        <h2 style={{ fontSize: 'clamp(26px, 3vw, 40px)', fontWeight: 700, letterSpacing: '-0.8px', textAlign: 'center', marginBottom: '52px', color: '#fff' }}>
+        <p style={{ fontSize: '17px', color: 'rgba(255,255,255,0.45)', letterSpacing: '0.05em', marginBottom: '18px', textAlign: 'center', fontWeight: 500, textTransform: 'uppercase' }}>Upload & Optimize</p>
+        <h2 style={{ fontSize: 'clamp(28px, 3vw, 44px)', fontWeight: 700, letterSpacing: '-0.8px', textAlign: 'center', marginBottom: '52px', color: '#fff' }}>
           Optimize Every Video Before It Goes Live
         </h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
@@ -31,9 +31,9 @@ export default function UploadOptimizeSection({ onTryTitles, onTryDesc, onTryTag
             >
               <div style={{ fontSize: '32px', flexShrink: 0 }}>{t.icon}</div>
               <div>
-                <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '8px', color: '#fff' }}>{t.title}</h3>
-                <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.6 }}>{t.desc}</p>
-                <span style={{ display: 'inline-block', marginTop: '12px', fontSize: '12px', color: 'rgba(255,255,255,0.35)' }}>Try it →</span>
+                <h3 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '8px', color: '#fff' }}>{t.title}</h3>
+                <p style={{ fontSize: '24px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.6 }}>{t.desc}</p>
+                <span style={{ display: 'inline-block', marginTop: '12px', fontSize: '24px', color: 'rgba(255,255,255,0.35)' }}>Try it →</span>
               </div>
             </button>
           ))}

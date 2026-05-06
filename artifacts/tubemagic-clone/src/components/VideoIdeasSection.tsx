@@ -14,12 +14,12 @@ export default function VideoIdeasSection({ onTryIt }: Props) {
   return (
     <section style={{ padding: '80px 40px', background: '#0d0d0d' }}>
       <div style={{ maxWidth: '1120px', margin: '0 auto' }}>
-        <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)', letterSpacing: '0.05em', marginBottom: '18px', textAlign: 'center', fontWeight: 500, textTransform: 'uppercase' }}>Video Ideas & Research</p>
-        <h2 style={{ fontSize: 'clamp(26px, 3vw, 40px)', fontWeight: 700, letterSpacing: '-0.8px', textAlign: 'center', marginBottom: '16px', color: '#fff' }}>
+        <p style={{ fontSize: '17px', color: 'rgba(255,255,255,0.45)', letterSpacing: '0.05em', marginBottom: '18px', textAlign: 'center', fontWeight: 500, textTransform: 'uppercase' }}>Video Ideas & Research</p>
+        <h2 style={{ fontSize: 'clamp(28px, 3vw, 44px)', fontWeight: 700, letterSpacing: '-0.8px', textAlign: 'center', marginBottom: '16px', color: '#fff' }}>
           Never Run Out of Viral Video Ideas
         </h2>
         <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-          <button onClick={onTryIt} style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: 'rgba(255,255,255,0.8)', padding: '8px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>
+          <button onClick={onTryIt} style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: 'rgba(255,255,255,0.8)', padding: '8px 20px', borderRadius: '8px', fontSize: '17px', fontWeight: 500, cursor: 'pointer' }}>
             Try Idea Generator →
           </button>
         </div>
@@ -27,8 +27,8 @@ export default function VideoIdeasSection({ onTryIt }: Props) {
           {features.map(f => (
             <div key={f.title} style={{ background: '#111111', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '14px', padding: '28px 24px' }}>
               <div style={{ fontSize: '28px', marginBottom: '14px' }}>{f.icon}</div>
-              <h3 style={{ fontSize: '15px', fontWeight: 600, marginBottom: '8px', color: '#fff' }}>{f.title}</h3>
-              <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.6 }}>{f.desc}</p>
+              <h3 style={{ fontSize: '17px', fontWeight: 600, marginBottom: '8px', color: '#fff' }}>{f.title}</h3>
+              <p style={{ fontSize: '17px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.6 }}>{f.desc}</p>
             </div>
           ))}
         </div>

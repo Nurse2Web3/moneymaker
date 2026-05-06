@@ -90,7 +90,7 @@ function AppNavbar({ page, setPage }: { page: Page; setPage: (p: Page) => void }
       borderBottom: '1px solid rgba(255,255,255,0.07)',
     }}>
       {/* Logo */}
-      <button onClick={() => { setPage('home'); setOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, fontSize: '16px', color: '#fff', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+      <button onClick={() => { setPage('home'); setOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, fontSize: '24px', color: '#fff', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
         <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
           <path d="M9 0L16.5 4.5V13.5L9 18L1.5 13.5V4.5L9 0Z" fill="white"/>
           <path d="M6 6.5L12 9L6 11.5V6.5Z" fill="black"/>
@@ -102,7 +102,7 @@ function AppNavbar({ page, setPage }: { page: Page; setPage: (p: Page) => void }
       <div ref={ref} style={{ position: 'relative' }}>
         <button onClick={() => setOpen(o => !o)} style={{
           display: 'flex', alignItems: 'center', gap: '6px',
-          padding: '7px 14px', borderRadius: '8px', fontSize: '13px', fontWeight: 500,
+          padding: '7px 14px', borderRadius: '8px', fontSize: '17px', fontWeight: 500,
           background: open || page !== 'home' ? 'rgba(255,255,255,0.08)' : 'transparent',
           color: page !== 'home' ? '#fff' : 'rgba(255,255,255,0.7)',
           border: `1px solid ${open || page !== 'home' ? 'rgba(255,255,255,0.15)' : 'transparent'}`,
@@ -134,10 +134,10 @@ function AppNavbar({ page, setPage }: { page: Page; setPage: (p: Page) => void }
                   onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
                   onMouseLeave={e => (e.currentTarget.style.background = page === t.id ? 'rgba(255,255,255,0.07)' : 'transparent')}
                   >
-                    <span style={{ fontSize: '16px', flexShrink: 0, marginTop: '1px' }}>{t.icon}</span>
+                    <span style={{ fontSize: '24px', flexShrink: 0, marginTop: '1px' }}>{t.icon}</span>
                     <div>
-                      <div style={{ fontSize: '13px', fontWeight: 500, color: page === t.id ? '#fff' : 'rgba(255,255,255,0.85)', marginBottom: '1px' }}>{t.label}</div>
-                      <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', lineHeight: 1.4 }}>{t.desc}</div>
+                      <div style={{ fontSize: '17px', fontWeight: 500, color: page === t.id ? '#fff' : 'rgba(255,255,255,0.85)', marginBottom: '1px' }}>{t.label}</div>
+                      <div style={{ fontSize: '17px', color: 'rgba(255,255,255,0.35)', lineHeight: 1.4 }}>{t.desc}</div>
                     </div>
                   </button>
                 ))}
@@ -150,7 +150,7 @@ function AppNavbar({ page, setPage }: { page: Page; setPage: (p: Page) => void }
       {/* CTA */}
       <button onClick={() => { setPage('script-writer'); setOpen(false); }} style={{
         background: '#ffffff', color: '#000000',
-        padding: '7px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 600,
+        padding: '7px 16px', borderRadius: '8px', fontSize: '17px', fontWeight: 600,
         border: 'none', cursor: 'pointer',
       }}>Get started</button>
     </nav>

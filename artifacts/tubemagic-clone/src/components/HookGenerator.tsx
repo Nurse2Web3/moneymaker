@@ -54,8 +54,8 @@ export default function HookGenerator() {
 
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto', padding: '40px 24px' }}>
-      <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>Viral Hook Generator</h1>
-      <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)', marginBottom: '28px' }}>Get 6 different hook styles for your video — find the one that grabs hardest</p>
+      <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>Viral Hook Generator</h1>
+      <p style={{ fontSize: '17px', color: 'rgba(255,255,255,0.45)', marginBottom: '28px' }}>Get 6 different hook styles for your video — find the one that grabs hardest</p>
 
       <div style={{ display: 'flex', gap: '10px', marginBottom: '24px' }}>
         <input
@@ -63,12 +63,12 @@ export default function HookGenerator() {
           onChange={e => setTopic(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && generate()}
           placeholder="Video topic (e.g. how to save money in your 20s)"
-          style={{ flex: 1, background: '#111', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '12px 16px', color: '#fff', fontSize: '14px', fontFamily: 'inherit', outline: 'none' }}
+          style={{ flex: 1, background: '#111', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '12px 16px', color: '#fff', fontSize: '24px', fontFamily: 'inherit', outline: 'none' }}
         />
         <button onClick={generate} disabled={!topic.trim() || loading} style={{
           padding: '12px 22px', borderRadius: '10px', background: topic.trim() && !loading ? '#fff' : '#1a1a1a',
           color: topic.trim() && !loading ? '#000' : 'rgba(255,255,255,0.3)',
-          fontWeight: 600, fontSize: '14px', cursor: topic.trim() && !loading ? 'pointer' : 'not-allowed', border: 'none', whiteSpace: 'nowrap',
+          fontWeight: 600, fontSize: '24px', cursor: topic.trim() && !loading ? 'pointer' : 'not-allowed', border: 'none', whiteSpace: 'nowrap',
         }}>
           {loading ? 'Generating...' : '✦ Generate Hooks'}
         </button>
@@ -78,26 +78,26 @@ export default function HookGenerator() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '28px' }}>
         {HOOK_STYLES.map(s => (
           <div key={s.id} style={{ background: '#111', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '10px', padding: '12px 14px' }}>
-            <div style={{ fontSize: '11px', fontWeight: 700, color: styleColors[s.label] || '#fff', marginBottom: '4px', letterSpacing: '0.04em' }}>{s.label.toUpperCase()}</div>
-            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', lineHeight: 1.5, fontStyle: 'italic' }}>{s.example}</div>
+            <div style={{ fontSize: '17px', fontWeight: 700, color: styleColors[s.label] || '#fff', marginBottom: '4px', letterSpacing: '0.04em' }}>{s.label.toUpperCase()}</div>
+            <div style={{ fontSize: '17px', color: 'rgba(255,255,255,0.4)', lineHeight: 1.5, fontStyle: 'italic' }}>{s.example}</div>
           </div>
         ))}
       </div>
 
-      {error && <div style={{ background: '#ff4d4d15', border: '1px solid #ff4d4d30', borderRadius: '8px', padding: '12px 16px', color: '#ff4d4d', fontSize: '14px', marginBottom: '16px' }}>{error}</div>}
+      {error && <div style={{ background: '#ff4d4d15', border: '1px solid #ff4d4d30', borderRadius: '8px', padding: '12px 16px', color: '#ff4d4d', fontSize: '24px', marginBottom: '16px' }}>{error}</div>}
 
       {hooks.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {hooks.map((h, i) => (
             <div key={i} style={{ background: '#111', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '18px 20px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-                <span style={{ fontSize: '11px', fontWeight: 700, color: styleColors[h.style] || '#fff', letterSpacing: '0.05em', textTransform: 'uppercase' }}>{h.style}</span>
-                <button onClick={() => copy(h.hook, i)} style={{ padding: '4px 12px', borderRadius: '6px', fontSize: '11px', background: copiedIdx === i ? '#22c55e20' : 'rgba(255,255,255,0.07)', color: copiedIdx === i ? '#22c55e' : 'rgba(255,255,255,0.4)', border: `1px solid ${copiedIdx === i ? '#22c55e40' : 'rgba(255,255,255,0.1)'}`, cursor: 'pointer' }}>
+                <span style={{ fontSize: '17px', fontWeight: 700, color: styleColors[h.style] || '#fff', letterSpacing: '0.05em', textTransform: 'uppercase' }}>{h.style}</span>
+                <button onClick={() => copy(h.hook, i)} style={{ padding: '4px 12px', borderRadius: '6px', fontSize: '17px', background: copiedIdx === i ? '#22c55e20' : 'rgba(255,255,255,0.07)', color: copiedIdx === i ? '#22c55e' : 'rgba(255,255,255,0.4)', border: `1px solid ${copiedIdx === i ? '#22c55e40' : 'rgba(255,255,255,0.1)'}`, cursor: 'pointer' }}>
                   {copiedIdx === i ? '✓ Copied' : 'Copy'}
                 </button>
               </div>
-              <p style={{ fontSize: '14px', color: '#fff', lineHeight: 1.6, marginBottom: '8px', fontWeight: 500 }}>"{h.hook}"</p>
-              <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', lineHeight: 1.5 }}>💡 {h.why}</p>
+              <p style={{ fontSize: '24px', color: '#fff', lineHeight: 1.6, marginBottom: '8px', fontWeight: 500 }}>"{h.hook}"</p>
+              <p style={{ fontSize: '24px', color: 'rgba(255,255,255,0.4)', lineHeight: 1.5 }}>💡 {h.why}</p>
             </div>
           ))}
         </div>

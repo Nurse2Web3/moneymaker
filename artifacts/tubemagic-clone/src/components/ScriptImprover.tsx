@@ -76,30 +76,30 @@ export default function ScriptImprover() {
         {/* LEFT — Input */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
-            <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>Script Improver</h1>
-            <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)' }}>Paste your existing script — AI rewrites it with Tension Engine techniques</p>
+            <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>Script Improver</h1>
+            <p style={{ fontSize: '17px', color: 'rgba(255,255,255,0.45)' }}>Paste your existing script — AI rewrites it with Tension Engine techniques</p>
           </div>
 
           <div style={{ background: '#111', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '16px' }}>
-            <label style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.05em', textTransform: 'uppercase', display: 'block', marginBottom: '10px' }}>Your Script *</label>
+            <label style={{ fontSize: '24px', fontWeight: 600, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.05em', textTransform: 'uppercase', display: 'block', marginBottom: '10px' }}>Your Script *</label>
             <textarea
               value={script}
               onChange={e => setScript(e.target.value)}
               placeholder="Paste your existing YouTube script here..."
               rows={16}
-              style={{ width: '100%', background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '12px', color: '#fff', fontSize: '13px', lineHeight: 1.7, resize: 'vertical', fontFamily: 'inherit', outline: 'none' }}
+              style={{ width: '100%', background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '12px', color: '#fff', fontSize: '17px', lineHeight: 1.7, resize: 'vertical', fontFamily: 'inherit', outline: 'none' }}
             />
-            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)', marginTop: '6px' }}>
+            <div style={{ fontSize: '17px', color: 'rgba(255,255,255,0.3)', marginTop: '6px' }}>
               {script.split(/\s+/).filter(Boolean).length} words
             </div>
           </div>
 
           <div style={{ background: '#111', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '16px' }}>
-            <label style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.05em', textTransform: 'uppercase', display: 'block', marginBottom: '10px' }}>Focus Areas</label>
+            <label style={{ fontSize: '24px', fontWeight: 600, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.05em', textTransform: 'uppercase', display: 'block', marginBottom: '10px' }}>Focus Areas</label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
               {IMPROVEMENTS.map(f => (
                 <button key={f.id} onClick={() => toggleFocus(f.id)} style={{
-                  padding: '6px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 500, cursor: 'pointer',
+                  padding: '6px 14px', borderRadius: '20px', fontSize: '24px', fontWeight: 500, cursor: 'pointer',
                   background: focus.includes(f.id) ? 'rgba(255,255,255,0.1)' : 'transparent',
                   color: focus.includes(f.id) ? '#fff' : 'rgba(255,255,255,0.4)',
                   border: `1px solid ${focus.includes(f.id) ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.08)'}`,
@@ -111,7 +111,7 @@ export default function ScriptImprover() {
           </div>
 
           <button onClick={improve} disabled={!script.trim() || loading} style={{
-            padding: '13px', borderRadius: '10px', fontWeight: 600, fontSize: '15px', border: 'none',
+            padding: '13px', borderRadius: '10px', fontWeight: 600, fontSize: '17px', border: 'none',
             background: !script.trim() || loading ? '#1a1a1a' : '#fff',
             color: !script.trim() || loading ? 'rgba(255,255,255,0.3)' : '#000',
             cursor: !script.trim() || loading ? 'not-allowed' : 'pointer',
@@ -124,22 +124,22 @@ export default function ScriptImprover() {
         <div style={{ background: '#111', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '14px', overflow: 'hidden', minHeight: '600px', display: 'flex', flexDirection: 'column', position: 'sticky', top: '80px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: '#0d0d0d' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '13px', fontWeight: 500, color: '#fff' }}>Improved Script</span>
-              {wordCount > 0 && <span style={{ fontSize: '11px', background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)', padding: '2px 8px', borderRadius: '20px' }}>{wordCount.toLocaleString()} words</span>}
-              {loading && <span style={{ fontSize: '11px', color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: '#f59e0b', animation: 'pulse 1s infinite' }} />Rewriting...</span>}
+              <span style={{ fontSize: '17px', fontWeight: 500, color: '#fff' }}>Improved Script</span>
+              {wordCount > 0 && <span style={{ fontSize: '17px', background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)', padding: '2px 8px', borderRadius: '20px' }}>{wordCount.toLocaleString()} words</span>}
+              {loading && <span style={{ fontSize: '17px', color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: '#f59e0b', animation: 'pulse 1s infinite' }} />Rewriting...</span>}
             </div>
-            {result && <button onClick={copy} style={{ padding: '5px 12px', borderRadius: '6px', fontSize: '12px', background: copied ? '#22c55e20' : 'rgba(255,255,255,0.08)', color: copied ? '#22c55e' : 'rgba(255,255,255,0.5)', border: `1px solid ${copied ? '#22c55e40' : 'rgba(255,255,255,0.1)'}`, cursor: 'pointer' }}>{copied ? '✓ Copied' : 'Copy'}</button>}
+            {result && <button onClick={copy} style={{ padding: '5px 12px', borderRadius: '6px', fontSize: '24px', background: copied ? '#22c55e20' : 'rgba(255,255,255,0.08)', color: copied ? '#22c55e' : 'rgba(255,255,255,0.5)', border: `1px solid ${copied ? '#22c55e40' : 'rgba(255,255,255,0.1)'}`, cursor: 'pointer' }}>{copied ? '✓ Copied' : 'Copy'}</button>}
           </div>
           <div style={{ flex: 1, padding: '24px', overflowY: 'auto', maxHeight: 'calc(100vh - 200px)' }}>
-            {error && <div style={{ background: '#ff4d4d15', border: '1px solid #ff4d4d30', borderRadius: '8px', padding: '12px 16px', color: '#ff4d4d', fontSize: '14px', marginBottom: '16px' }}>{error}</div>}
+            {error && <div style={{ background: '#ff4d4d15', border: '1px solid #ff4d4d30', borderRadius: '8px', padding: '12px 16px', color: '#ff4d4d', fontSize: '24px', marginBottom: '16px' }}>{error}</div>}
             {!result && !loading && !error && (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '400px', gap: '12px', color: 'rgba(255,255,255,0.2)', textAlign: 'center' }}>
                 <span style={{ fontSize: '40px' }}>✨</span>
-                <p style={{ fontSize: '15px', fontWeight: 500 }}>Your improved script will appear here</p>
-                <p style={{ fontSize: '13px' }}>Paste your script on the left and hit improve</p>
+                <p style={{ fontSize: '17px', fontWeight: 500 }}>Your improved script will appear here</p>
+                <p style={{ fontSize: '17px' }}>Paste your script on the left and hit improve</p>
               </div>
             )}
-            {result && <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: '13px', lineHeight: '1.8', color: 'rgba(255,255,255,0.85)', fontFamily: 'inherit', margin: 0 }}>{result}{loading && <span style={{ opacity: 0.5, animation: 'pulse 1s infinite' }}>▊</span>}</pre>}
+            {result && <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: '17px', lineHeight: '1.8', color: 'rgba(255,255,255,0.85)', fontFamily: 'inherit', margin: 0 }}>{result}{loading && <span style={{ opacity: 0.5, animation: 'pulse 1s infinite' }}>▊</span>}</pre>}
           </div>
         </div>
       </div>

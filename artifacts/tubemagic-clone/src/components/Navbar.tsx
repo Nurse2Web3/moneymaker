@@ -24,15 +24,15 @@ export default function Navbar() {
       </a>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
-        <a href="#" style={{ fontSize: '14px', color: 'rgba(255,255,255,0.8)', fontWeight: 500 }}>Features</a>
-        <a href="#" style={{ fontSize: '14px', color: 'rgba(255,255,255,0.8)', fontWeight: 500 }}>Pricing</a>
-        <a href="#" style={{ fontSize: '14px', color: 'rgba(255,255,255,0.8)', fontWeight: 500 }}>Affiliates</a>
+        <a href="#" style={{ fontSize: '24px', color: 'rgba(255,255,255,0.8)', fontWeight: 500 }}>Features</a>
+        <a href="#" style={{ fontSize: '24px', color: 'rgba(255,255,255,0.8)', fontWeight: 500 }}>Pricing</a>
+        <a href="#" style={{ fontSize: '24px', color: 'rgba(255,255,255,0.8)', fontWeight: 500 }}>Affiliates</a>
         <a href="#" style={{
           background: '#ffffff',
           color: '#000000',
           padding: '8px 18px',
           borderRadius: '8px',
-          fontSize: '14px',
+          fontSize: '24px',
           fontWeight: 600,
         }}>Get started</a>
       </div>

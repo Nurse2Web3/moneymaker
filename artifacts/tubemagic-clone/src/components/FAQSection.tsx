@@ -54,7 +54,7 @@ function FAQItem({ q, a }: { q: string; a: string }) {
           justifyContent: 'space-between',
           width: '100%',
           padding: '20px 0',
-          fontSize: '15px',
+          fontSize: '17px',
           fontWeight: 500,
           color: '#fff',
           textAlign: 'left',
@@ -72,14 +72,14 @@ function FAQItem({ q, a }: { q: string; a: string }) {
           alignItems: 'center',
           justifyContent: 'center',
           color: 'rgba(255,255,255,0.4)',
-          fontSize: '18px',
+          fontSize: '24px',
           transition: 'transform 0.2s',
           transform: open ? 'rotate(45deg)' : 'none',
         }}>+</span>
       </button>
       {open && (
         <p style={{
-          fontSize: '14px',
+          fontSize: '24px',
           color: 'rgba(255,255,255,0.55)',
           lineHeight: 1.7,
           paddingBottom: '20px',
@@ -95,11 +95,11 @@ export default function FAQSection() {
   return (
     <section style={{ padding: '80px 40px' }}>
       <div style={{ maxWidth: '720px', margin: '0 auto' }}>
-        <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.45)', letterSpacing: '0.05em', marginBottom: '12px', textAlign: 'center', fontWeight: 500, textTransform: 'uppercase' }}>
+        <p style={{ fontSize: '17px', color: 'rgba(255,255,255,0.45)', letterSpacing: '0.05em', marginBottom: '12px', textAlign: 'center', fontWeight: 500, textTransform: 'uppercase' }}>
           FAQs
         </p>
         <h2 style={{
-          fontSize: 'clamp(26px, 3vw, 38px)',
+          fontSize: 'clamp(28px, 3vw, 42px)',
           fontWeight: 700,
           letterSpacing: '-0.8px',
           textAlign: 'center',
@@ -108,7 +108,7 @@ export default function FAQSection() {
         }}>
           Questions we get asked
         </h2>
-        <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.5)', fontSize: '15px', marginBottom: '48px' }}>
+        <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.5)', fontSize: '17px', marginBottom: '48px' }}>
           Get answers to most frequently asked questions.
         </p>
 
