@@ -1,8 +1,8 @@
 import { useState, useRef } from 'react';
 
 const MODELS = [
-  { id: 'claude', label: 'Claude Sonnet', icon: '✦' },
-  { id: 'gpt4o', label: 'GPT-4o', icon: '⬡' },
+  { id: 'claude-sonnet', label: 'Claude Sonnet', icon: '✦', desc: 'Fast & smart' },
+  { id: 'claude-opus', label: 'Claude Opus', icon: '✦✦', desc: 'Most powerful' },
 ];
 
 const LENGTHS = [
@@ -37,7 +37,7 @@ export default function ScriptWriter() {
   const [topic, setTopic] = useState('');
   const [channelStyle, setChannelStyle] = useState('');
   const [videoLength, setVideoLength] = useState('1500');
-  const [model, setModel] = useState('claude');
+  const [model, setModel] = useState('claude-sonnet');
   const [tensionLevel, setTensionLevel] = useState('high');
   const [selectedTechniques, setSelectedTechniques] = useState<string[]>(['open_loops', 'cliffhangers', 'curiosity_gaps']);
   const [inspirationLinks, setInspirationLinks] = useState('');
@@ -158,13 +158,14 @@ export default function ScriptWriter() {
             <div style={{ display: 'flex', gap: '8px' }}>
               {MODELS.map(m => (
                 <button key={m.id} onClick={() => setModel(m.id)} style={{
-                  flex: 1, padding: '9px', borderRadius: '8px', fontSize: '13px', fontWeight: 500,
+                  flex: 1, padding: '10px 12px', borderRadius: '8px', fontSize: '13px', fontWeight: 500,
                   border: `1px solid ${model === m.id ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.08)'}`,
                   background: model === m.id ? 'rgba(255,255,255,0.08)' : 'transparent',
                   color: model === m.id ? '#fff' : 'rgba(255,255,255,0.5)',
-                  cursor: 'pointer',
+                  cursor: 'pointer', textAlign: 'left',
                 }}>
-                  {m.icon} {m.label}
+                  <div>{m.icon} {m.label}</div>
+                  <div style={{ fontSize: '10px', opacity: 0.6, marginTop: '2px', fontWeight: 400 }}>{m.desc}</div>
                 </button>
               ))}
             </div>
