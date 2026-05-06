@@ -35,11 +35,35 @@ const colorText: Record<string, string> = {
 
 type Ratio = '16:9' | '9:16';
 
+const RATIO_META: Record<Ratio, { label: string; platform: string; w: number; h: number }> = {
+  '16:9': { label: '16:9 — YouTube', platform: '1280 × 720 px', w: 1280, h: 720 },
+  '9:16': { label: '9:16 — TikTok / Shorts', platform: '1080 × 1920 px', w: 1080, h: 1920 },
+};
+
+function downloadResized(src: string, ratio: Ratio, filename: string) {
+  const { w, h } = RATIO_META[ratio];
+  const img = new Image();
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d')!;
+    ctx.drawImage(img, 0, 0, w, h);
+    const a = document.createElement('a');
+    a.href = canvas.toDataURL('image/png');
+    a.download = filename;
+    a.click();
+  };
+  img.src = src;
+}
+
 function GeneratedImage({ src, ratio, onDownload }: { src: string; ratio: Ratio; onDownload: () => void }) {
+  const meta = RATIO_META[ratio];
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'center' }}>
-      <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', fontWeight: 600, letterSpacing: '0.06em' }}>
-        {ratio === '16:9' ? '16:9 — YouTube' : '9:16 — Shorts'}
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', fontWeight: 600, letterSpacing: '0.06em' }}>{meta.label}</div>
+        <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.25)' }}>{meta.platform}</div>
       </div>
       <img
         src={src}
@@ -56,7 +80,7 @@ function GeneratedImage({ src, ratio, onDownload }: { src: string; ratio: Ratio;
         onClick={onDownload}
         style={{ padding: '5px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: 600, background: 'rgba(34,197,94,0.1)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.3)', cursor: 'pointer' }}
       >
-        ↓ Download
+        ↓ Download {meta.platform}
       </button>
     </div>
   );
@@ -101,10 +125,8 @@ function ThumbnailCard({ s, i, title, niche, copiedIdx, onCopy }: {
   function download(ratio: Ratio) {
     const src = images[ratio];
     if (!src) return;
-    const a = document.createElement('a');
-    a.href = src;
-    a.download = `thumbnail-${ratio.replace(':', 'x')}-${s.style.toLowerCase().replace(/\//g, '-')}.png`;
-    a.click();
+    const filename = `thumbnail-${ratio.replace(':', 'x')}-${s.style.toLowerCase().replace(/\//g, '-')}.png`;
+    downloadResized(src, ratio, filename);
   }
 
   const bg = colorBg[s.colorScheme] || 'linear-gradient(135deg,#1a1a2e,#0f3460)';
@@ -141,7 +163,9 @@ function ThumbnailCard({ s, i, title, niche, copiedIdx, onCopy }: {
               cursor: loading[ratio] ? 'not-allowed' : 'pointer',
             }}
           >
-            {loading[ratio] ? '…' : images[ratio] ? `✓ ${ratio} Regenerate` : `✦ Generate ${ratio}`}
+            {loading[ratio] ? '…' : images[ratio]
+              ? `✓ ${RATIO_META[ratio].platform} — Regenerate`
+              : `✦ ${ratio} — ${RATIO_META[ratio].platform}`}
           </button>
         ))}
       </div>

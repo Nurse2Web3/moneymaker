@@ -442,8 +442,8 @@ router.post("/tools/thumbnail-generate", async (req, res): Promise<void> => {
 
   const isPortrait = aspectRatio === "9:16";
   const ratioDesc = isPortrait
-    ? "9:16 vertical aspect ratio, YouTube Shorts style, tall portrait orientation"
-    : "16:9 horizontal aspect ratio, standard YouTube thumbnail, wide landscape orientation";
+    ? "9:16 vertical portrait, TikTok / YouTube Shorts style, 1080x1920 pixels, tall composition"
+    : "16:9 horizontal landscape, standard YouTube thumbnail, 1280x720 pixels, wide composition";
   const imageSize = isPortrait ? "1024x1536" : "1536x1024";
 
   const prompt = `YouTube ${isPortrait ? "Shorts cover" : "thumbnail"}, ${bgDesc}, ${styleDesc[style] || "high contrast design"}.
