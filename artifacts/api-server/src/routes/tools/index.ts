@@ -151,7 +151,7 @@ router.post("/tools/description", async (req, res): Promise<void> => {
       messages: [{
         role: "user",
         content: `Write a YouTube video description for a video titled: "${title}"
-${script ? `\nScript summary/excerpt:\n${script.slice(0, 1000)}` : ""}
+${script ? `\nScript (use this to generate accurate timestamps and content overview):\n${script.slice(0, 10000)}` : ""}
 
 The current year is ${CURRENT_YEAR}. Use ${CURRENT_YEAR} for any date references — never use a past year.
 

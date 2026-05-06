@@ -47,13 +47,18 @@ export default function DescriptionGenerator() {
           placeholder="Video title *"
           style={{ background: '#111', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '12px 16px', color: '#fff', fontSize: '24px', fontFamily: 'inherit', outline: 'none' }}
         />
-        <textarea
-          value={script}
-          onChange={e => setScript(e.target.value)}
-          placeholder="Paste your script or key points (optional — improves accuracy)"
-          rows={4}
-          style={{ background: '#111', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '12px 16px', color: '#fff', fontSize: '24px', fontFamily: 'inherit', outline: 'none', resize: 'vertical', lineHeight: 1.5 }}
-        />
+        <div style={{ position: 'relative' }}>
+          <textarea
+            value={script}
+            onChange={e => setScript(e.target.value.slice(0, 10000))}
+            placeholder="Paste your script (optional — up to 10,000 characters — improves accuracy of timestamps and content)"
+            rows={6}
+            style={{ width: '100%', background: '#111', border: `1px solid ${script.length >= 10000 ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.1)'}`, borderRadius: '10px', padding: '12px 16px', paddingBottom: '28px', color: '#fff', fontSize: '16px', fontFamily: 'inherit', outline: 'none', resize: 'vertical', lineHeight: 1.5, boxSizing: 'border-box' }}
+          />
+          <span style={{ position: 'absolute', bottom: '8px', right: '12px', fontSize: '13px', color: script.length >= 9500 ? (script.length >= 10000 ? '#ef4444' : '#f59e0b') : 'rgba(255,255,255,0.25)' }}>
+            {script.length.toLocaleString()} / 10,000
+          </span>
+        </div>
         <button
           onClick={generate}
           disabled={!title.trim() || loading}
