@@ -30,7 +30,7 @@ export default function HeroSection({ onGetStarted }: Props) {
       }}>
         <img
           src="https://tubemagic.com/_next/image?url=%2Ffeatures%2Ffeatures-1.png&w=1920&q=75"
-          alt="TubeMagic Script Writer"
+          alt="MoneyMaker Script Writer"
           style={{ width: '100%', display: 'block' }}
           onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
         />

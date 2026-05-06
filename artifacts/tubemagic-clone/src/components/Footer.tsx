@@ -13,10 +13,10 @@ export default function Footer() {
           <path d="M9 0L16.5 4.5V13.5L9 18L1.5 13.5V4.5L9 0Z" fill="white"/>
           <path d="M6 6.5L12 9L6 11.5V6.5Z" fill="black"/>
         </svg>
-        TubeMagic
+        MoneyMaker
       </div>
       <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.35)' }}>
-        © 2024 TubeMagic. All rights reserved.
+        © 2026 MoneyMaker. All rights reserved.
       </p>
     </footer>
   );

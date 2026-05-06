@@ -3,7 +3,7 @@ import { useState } from 'react';
 const faqs = [
   {
     q: 'Do we offer free trials?',
-    a: 'We have disabled free trials for now due to spam. We do offer a 30-day money back guarantee, so you can try out TubeMagic risk free.',
+    a: 'We have disabled free trials for now due to spam. We do offer a 30-day money back guarantee, so you can try out MoneyMaker risk free.',
   },
   {
     q: 'Are my payments secure?',
