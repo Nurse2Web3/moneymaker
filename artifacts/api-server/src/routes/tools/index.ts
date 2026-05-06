@@ -344,6 +344,52 @@ router.post("/tools/niche-analysis", async (req, res): Promise<void> => {
   }
 
   try {
+    const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
+    let topVideos: {
+      title: string; channel: string; publishedAt: string;
+      videoId: string; thumbnail: string;
+      viewCount: string; likeCount: string; commentCount: string;
+    }[] = [];
+
+    if (YOUTUBE_API_KEY) {
+      const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&order=viewCount&q=${encodeURIComponent(niche)}&maxResults=15&key=${YOUTUBE_API_KEY}`;
+      const searchRes = await fetch(searchUrl);
+      const searchData = await searchRes.json() as {
+        items?: { id: { videoId: string }; snippet: { title: string; channelTitle: string; publishedAt: string; thumbnails: { medium: { url: string } } } }[]
+      };
+
+      if (searchData.items && searchData.items.length > 0) {
+        const videoIds = searchData.items.map(v => v.id.videoId).join(",");
+        const statsUrl = `https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${videoIds}&key=${YOUTUBE_API_KEY}`;
+        const statsRes = await fetch(statsUrl);
+        const statsData = await statsRes.json() as {
+          items?: { id: string; statistics: { viewCount?: string; likeCount?: string; commentCount?: string } }[]
+        };
+
+        const statsMap: Record<string, { viewCount?: string; likeCount?: string; commentCount?: string }> = {};
+        if (statsData.items) {
+          for (const v of statsData.items) statsMap[v.id] = v.statistics;
+        }
+
+        topVideos = searchData.items.map(v => ({
+          title: v.snippet.title,
+          channel: v.snippet.channelTitle,
+          publishedAt: v.snippet.publishedAt,
+          videoId: v.id.videoId,
+          thumbnail: v.snippet.thumbnails.medium.url,
+          viewCount: statsMap[v.id.videoId]?.viewCount || "0",
+          likeCount: statsMap[v.id.videoId]?.likeCount || "0",
+          commentCount: statsMap[v.id.videoId]?.commentCount || "0",
+        }));
+      }
+    }
+
+    const ytContext = topVideos.length > 0
+      ? `\n\nREAL YOUTUBE DATA for "${niche}" (top 15 videos by views):\n${topVideos.map((v, i) =>
+          `${i + 1}. "${v.title}" by ${v.channel} — ${Number(v.viewCount).toLocaleString()} views, ${Number(v.likeCount).toLocaleString()} likes, published ${v.publishedAt.slice(0, 10)}`
+        ).join("\n")}\n\nUse this real data to make your analysis accurate — reference actual view counts, title patterns you observe, and what the data reveals about this niche.`
+      : "";
+
     const message = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 8192,
@@ -351,37 +397,43 @@ router.post("/tools/niche-analysis", async (req, res): Promise<void> => {
         role: "user",
         content: `Perform a deep content strategy analysis for a YouTube channel in the "${niche}" niche.
 ${channelDescription ? `Channel description: ${channelDescription}` : ""}
+${ytContext}
 
 Current year: ${CURRENT_YEAR}
 
 Return a comprehensive analysis as valid JSON with this exact structure:
 {
-  "summary": "2-3 sentence overview of this niche's current landscape and opportunity level",
+  "summary": "2-3 sentence overview grounded in the real data — mention actual view counts, what the top videos reveal, and realistic opportunity assessment",
+  "marketSize": "Small|Medium|Large|Massive",
+  "competition": "Low|Medium|High|Very High",
+  "revenuePotential": "Low|Medium|High|Very High",
+  "avgTopViews": number (average views of top videos you see in the data, or your estimate),
   "opportunities": [
     {
-      "title": "Specific content opportunity title",
-      "description": "2 sentence description of what to make and why it works",
+      "title": "Specific content opportunity title based on gaps in the real data",
+      "description": "2 sentence description referencing what the data shows is missing or underserved",
       "potential": "High|Viral|Medium"
     }
   ],
+  "titlePatterns": ["Pattern 1 observed in top titles", "Pattern 2", "Pattern 3"],
   "contentGaps": [
     {
-      "gap": "Specific underserved content area",
-      "why": "Why this gap exists and how to exploit it"
+      "gap": "Specific underserved content area not covered by top videos",
+      "why": "Why this gap exists based on what you see in the real data"
     }
   ],
   "topFormats": [
     {
       "format": "Format name",
-      "description": "Why this format works in this niche",
-      "examples": "2-3 example video titles using this format"
+      "description": "Why this format works in this niche based on what you see working",
+      "examples": "2-3 example video titles you would make"
     }
   ],
   "avoidMistakes": ["Mistake 1", "Mistake 2", "Mistake 3", "Mistake 4"],
   "quickWins": ["Quick win 1", "Quick win 2", "Quick win 3", "Quick win 4", "Quick win 5"]
 }
 
-Provide exactly: 4 opportunities, 4 content gaps, 3 top formats, 4 mistakes, 5 quick wins.
+Provide exactly: 4 opportunities, 3 title patterns, 4 content gaps, 3 top formats, 4 mistakes, 5 quick wins.
 Return ONLY the JSON object, no extra text.`,
       }],
     });
@@ -389,10 +441,79 @@ Return ONLY the JSON object, no extra text.`,
     const text = message.content[0].type === "text" ? message.content[0].text : "{}";
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     const analysis = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
-    res.json({ analysis });
+    res.json({ analysis, topVideos });
   } catch (err) {
     req.log.error({ err }, "Niche analysis failed");
     res.status(500).json({ error: "Niche analysis failed" });
+  }
+});
+
+router.post("/tools/niche-discovery", async (req, res): Promise<void> => {
+  try {
+    const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
+
+    const message = await anthropic.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 8192,
+      messages: [{
+        role: "user",
+        content: `You are a YouTube monetization expert. Suggest 8 profitable YouTube niches that someone could realistically start in ${CURRENT_YEAR} and make money from within 6-12 months.
+
+For each niche, be specific (not "fitness" — say "home workouts for busy moms over 40"). Focus on niches with:
+- High advertiser CPM ($8-40+)
+- Growing search demand in ${CURRENT_YEAR}
+- Achievable for a solo creator
+- Not completely dominated by mega-channels
+
+Return ONLY valid JSON array:
+[
+  {
+    "niche": "Specific niche name",
+    "searchQuery": "The YouTube search query to research this niche",
+    "why": "1-2 sentences on why this niche is profitable right now",
+    "cpmRange": "$X-$Y",
+    "difficulty": "Beginner|Intermediate|Advanced",
+    "contentIdeas": ["Idea 1", "Idea 2", "Idea 3"],
+    "icon": "single emoji that represents this niche"
+  }
+]`,
+      }],
+    });
+
+    const text = message.content[0].type === "text" ? message.content[0].text : "[]";
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    let niches = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+
+    if (YOUTUBE_API_KEY && niches.length > 0) {
+      niches = await Promise.all(niches.map(async (n: { niche: string; searchQuery: string; why: string; cpmRange: string; difficulty: string; contentIdeas: string[]; icon: string }) => {
+        try {
+          const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&order=viewCount&q=${encodeURIComponent(n.searchQuery)}&maxResults=5&key=${YOUTUBE_API_KEY}`;
+          const searchRes = await fetch(searchUrl);
+          const searchData = await searchRes.json() as { items?: { id: { videoId: string } }[] };
+          if (!searchData.items || searchData.items.length === 0) return n;
+
+          const videoIds = searchData.items.map((v: { id: { videoId: string } }) => v.id.videoId).join(",");
+          const statsUrl = `https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${videoIds}&key=${YOUTUBE_API_KEY}`;
+          const statsRes = await fetch(statsUrl);
+          const statsData = await statsRes.json() as { items?: { statistics: { viewCount?: string } }[] };
+
+          let totalViews = 0;
+          let count = 0;
+          if (statsData.items) {
+            for (const v of statsData.items) {
+              if (v.statistics.viewCount) { totalViews += Number(v.statistics.viewCount); count++; }
+            }
+          }
+          const avgViews = count > 0 ? Math.round(totalViews / count) : 0;
+          return { ...n, avgTopViews: avgViews };
+        } catch { return n; }
+      }));
+    }
+
+    res.json({ niches });
+  } catch (err) {
+    req.log.error({ err }, "Niche discovery failed");
+    res.status(500).json({ error: "Niche discovery failed" });
   }
 });
 
