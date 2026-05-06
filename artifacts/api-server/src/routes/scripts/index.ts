@@ -97,7 +97,7 @@ Apply the TENSION ENGINE at ${tensionLevel} intensity throughout every section. 
   res.setHeader("Connection", "keep-alive");
 
   try {
-    const selectedModel = model === "claude-opus" ? "claude-opus-4-5" : "claude-sonnet-4-6";
+    const selectedModel = model === "claude-opus" ? "claude-opus-4-7" : "claude-sonnet-4-6";
 
     const stream = anthropic.messages.stream({
       model: selectedModel,
