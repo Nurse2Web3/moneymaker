@@ -18,6 +18,7 @@ import HookGenerator from './components/HookGenerator';
 import ThumbnailGenerator from './components/ThumbnailGenerator';
 import NicheAnalyzer from './components/NicheAnalyzer';
 import VideoAnalyzer from './components/VideoAnalyzer';
+import Teleprompter from './components/Teleprompter';
 
 type Page =
   | 'home'
@@ -30,7 +31,8 @@ type Page =
   | 'tag-generator'
   | 'thumbnail-generator'
   | 'niche-analyzer'
-  | 'video-analyzer';
+  | 'video-analyzer'
+  | 'teleprompter';
 
 const TOOL_GROUPS = [
   {
@@ -40,6 +42,7 @@ const TOOL_GROUPS = [
       { id: 'script-writer' as Page, label: 'Script Writer', icon: '✦', desc: 'Full scripts with Tension Engine' },
       { id: 'script-improver' as Page, label: 'Script Improver', icon: '✨', desc: 'Rewrite & upgrade existing scripts' },
       { id: 'hook-generator' as Page, label: 'Hook Generator', icon: '🎣', desc: '6 viral hook styles for any topic' },
+      { id: 'teleprompter' as Page, label: 'Teleprompter', icon: '🎬', desc: 'Full-screen auto-scroll while you record' },
     ],
   },
   {
@@ -182,6 +185,7 @@ export default function App() {
         {page === 'idea-generator' && <IdeaGenerator />}
         {page === 'niche-analyzer' && <NicheAnalyzer />}
         {page === 'video-analyzer' && <VideoAnalyzer />}
+        {page === 'teleprompter' && <Teleprompter />}
         {page === 'title-generator' && <TitleGenerator />}
         {page === 'description-generator' && <DescriptionGenerator />}
         {page === 'tag-generator' && <TagGenerator />}
