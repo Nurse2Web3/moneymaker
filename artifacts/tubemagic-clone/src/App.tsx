@@ -17,6 +17,7 @@ import ScriptImprover from './components/ScriptImprover';
 import HookGenerator from './components/HookGenerator';
 import ThumbnailGenerator from './components/ThumbnailGenerator';
 import NicheAnalyzer from './components/NicheAnalyzer';
+import VideoAnalyzer from './components/VideoAnalyzer';
 
 type Page =
   | 'home'
@@ -28,7 +29,8 @@ type Page =
   | 'description-generator'
   | 'tag-generator'
   | 'thumbnail-generator'
-  | 'niche-analyzer';
+  | 'niche-analyzer'
+  | 'video-analyzer';
 
 const TOOL_GROUPS = [
   {
@@ -46,6 +48,7 @@ const TOOL_GROUPS = [
     tools: [
       { id: 'idea-generator' as Page, label: 'Video Ideas', icon: '💡', desc: 'High-potential ideas for your niche' },
       { id: 'niche-analyzer' as Page, label: 'Niche Analyzer', icon: '🔬', desc: 'Gaps, opportunities & quick wins' },
+      { id: 'video-analyzer' as Page, label: 'Video Analyzer', icon: '📡', desc: 'Decode any video\'s transcript & formula' },
     ],
   },
   {
@@ -178,6 +181,7 @@ export default function App() {
         {page === 'hook-generator' && <HookGenerator />}
         {page === 'idea-generator' && <IdeaGenerator />}
         {page === 'niche-analyzer' && <NicheAnalyzer />}
+        {page === 'video-analyzer' && <VideoAnalyzer />}
         {page === 'title-generator' && <TitleGenerator />}
         {page === 'description-generator' && <DescriptionGenerator />}
         {page === 'tag-generator' && <TagGenerator />}

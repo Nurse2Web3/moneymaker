@@ -1,11 +1,24 @@
 import { Router, type IRouter } from "express";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
+import { YoutubeTranscript } from "youtube-transcript";
 import {
   GenerateTitlesBody,
   GenerateIdeasBody,
   GenerateDescriptionBody,
   GenerateTagsBody,
 } from "@workspace/api-zod";
+
+function extractVideoId(input: string): string | null {
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
+    /^([a-zA-Z0-9_-]{11})$/,
+  ];
+  for (const p of patterns) {
+    const m = input.match(p);
+    if (m) return m[1];
+  }
+  return null;
+}
 
 const router: IRouter = Router();
 
@@ -445,6 +458,107 @@ Return ONLY the JSON object, no extra text.`,
   } catch (err) {
     req.log.error({ err }, "Niche analysis failed");
     res.status(500).json({ error: "Niche analysis failed" });
+  }
+});
+
+router.post("/tools/analyze-video", async (req, res): Promise<void> => {
+  const { url } = req.body as { url: string };
+  if (!url?.trim()) {
+    res.status(400).json({ error: "url is required" });
+    return;
+  }
+
+  const videoId = extractVideoId(url.trim());
+  if (!videoId) {
+    res.status(400).json({ error: "Could not extract a valid YouTube video ID from the URL." });
+    return;
+  }
+
+  try {
+    const transcriptItems = await YoutubeTranscript.fetchTranscript(videoId);
+    if (!transcriptItems || transcriptItems.length === 0) {
+      res.status(400).json({ error: "No transcript found. This video may not have captions enabled." });
+      return;
+    }
+
+    const fullText = transcriptItems.map(t => t.text).join(" ");
+    const wordCount = fullText.split(/\s+/).length;
+    const previewText = fullText.slice(0, 12000);
+
+    const message = await anthropic.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 8192,
+      messages: [{
+        role: "user",
+        content: `You are an expert YouTube script analyst trained on thousands of high-retention videos. Analyze this YouTube video transcript and provide a comprehensive breakdown.
+
+TRANSCRIPT (${wordCount} words total):
+${previewText}${wordCount > 2500 ? "\n[Transcript truncated for analysis]" : ""}
+
+Current year: ${CURRENT_YEAR}
+
+Return ONLY valid JSON with this exact structure:
+{
+  "overallScore": number (1-10 overall script quality),
+  "hookType": "string (one of: Bold Claim, Shocking Stat, Question, Personal Story, Controversy, Pattern Interrupt, Number List, Curiosity Gap)",
+  "hookScore": number (1-10),
+  "hookText": "The exact opening line(s) used as the hook (first 1-3 sentences)",
+  "hookBreakdown": "2-3 sentences explaining exactly why this hook works or doesn't, what psychological trigger it uses",
+  "scoreBreakdown": [
+    { "category": "Hook", "score": number, "note": "brief note" },
+    { "category": "Structure", "score": number, "note": "brief note" },
+    { "category": "Tension", "score": number, "note": "brief note" },
+    { "category": "Pacing", "score": number, "note": "brief note" }
+  ],
+  "structure": [
+    {
+      "section": "Section name (e.g. Hook, Open Loop, Context, Main Point 1, Climax, CTA)",
+      "timestamp": "Approximate time marker (e.g. 0:00-0:30)",
+      "description": "What happens in this section and how it's executed",
+      "technique": "Tension Engine technique used, if any (e.g. Open Loop, Pattern Interrupt, Stakes Escalation) or empty string"
+    }
+  ],
+  "tensionTechniques": [
+    {
+      "technique": "Technique name",
+      "where": "Approximate timestamp or section",
+      "effectiveness": "1 sentence on how well it's used"
+    }
+  ],
+  "retentionMoments": [
+    {
+      "moment": "Brief label for this high-retention moment",
+      "timestamp": "Approximate timestamp",
+      "why": "Why viewers would keep watching here"
+    }
+  ],
+  "weakPoints": [
+    {
+      "issue": "Brief label of the weak point",
+      "timestamp": "Approximate timestamp",
+      "fix": "Specific actionable fix"
+    }
+  ],
+  "stealableFormula": "2-3 sentences describing the exact formula this creator uses that could be replicated for any topic — be specific about structure, hook type, pacing pattern, and CTA style",
+  "titleSuggestions": ["5 titles using this same formula but for different but related topics"]
+}
+
+Provide exactly: 4 score breakdown items, 4-8 structure sections, 2-4 tension techniques, 3 retention moments, 3 weak points, 5 title suggestions.`,
+      }],
+    });
+
+    const text = message.content[0].type === "text" ? message.content[0].text : "{}";
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    const analysis = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
+    res.json({ analysis, transcript: transcriptItems.slice(0, 200) });
+  } catch (err: unknown) {
+    req.log.error({ err }, "Video analysis failed");
+    const msg = err instanceof Error ? err.message : "Analysis failed";
+    if (msg.includes("Could not retrieve") || msg.includes("transcript") || msg.includes("disabled")) {
+      res.status(400).json({ error: "Transcript not available. The video may have captions disabled, be age-restricted, or private." });
+    } else {
+      res.status(500).json({ error: "Video analysis failed. Please try again." });
+    }
   }
 });
 
