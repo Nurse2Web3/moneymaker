@@ -409,9 +409,9 @@ Return ONLY valid JSON array:
 });
 
 router.post("/tools/thumbnail-generate", async (req, res): Promise<void> => {
-  const { title, niche, mainText, subText, style, colorScheme } = req.body as {
+  const { title, niche, mainText, subText, style, colorScheme, aspectRatio = "16:9" } = req.body as {
     title: string; niche?: string; mainText: string; subText?: string;
-    style: string; colorScheme: string;
+    style: string; colorScheme: string; aspectRatio?: "16:9" | "9:16";
   };
   if (!mainText?.trim()) {
     res.status(400).json({ error: "mainText is required" });
@@ -440,15 +440,20 @@ router.post("/tools/thumbnail-generate", async (req, res): Promise<void> => {
     "Bold Statement": "powerful bold statement typography, high contrast",
   };
 
-  const prompt = `YouTube thumbnail, ${bgDesc}, ${styleDesc[style] || "high contrast design"}.
+  const isPortrait = aspectRatio === "9:16";
+  const ratioDesc = isPortrait
+    ? "9:16 vertical aspect ratio, YouTube Shorts style, tall portrait orientation"
+    : "16:9 horizontal aspect ratio, standard YouTube thumbnail, wide landscape orientation";
+  const imageSize = isPortrait ? "1024x1536" : "1536x1024";
+
+  const prompt = `YouTube ${isPortrait ? "Shorts cover" : "thumbnail"}, ${bgDesc}, ${styleDesc[style] || "high contrast design"}.
 Large bold text "${mainText}"${subText ? `, smaller text below "${subText}"` : ""}.
 ${niche ? `Topic: ${niche}.` : ""}${title ? ` Video: "${title}".` : ""}
-Professional YouTube thumbnail design, 16:9 aspect ratio, high contrast, easy to read at small size.
-Clean composition, no watermarks, no borders, photorealistic lighting if any faces/objects shown.
-Text must be perfectly legible, large and centered. Modern graphic design style.`;
+Professional design, ${ratioDesc}, high contrast, easy to read at small size.
+Clean composition, no watermarks, no borders. Text must be perfectly legible, large and centered. Modern graphic design style.`;
 
   try {
-    const buffer = await generateImageBuffer(prompt, "1536x1024");
+    const buffer = await generateImageBuffer(prompt, imageSize);
     res.json({ image: buffer.toString("base64") });
   } catch (err) {
     req.log.error({ err }, "Thumbnail image generation failed");
