@@ -84,11 +84,14 @@ router.post("/scripts/generate", async (req, res): Promise<void> => {
 
   const systemPrompt = buildTensionSystemPrompt(tensionLevel, tensionTechniques || []);
 
+  const currentYear = new Date().getFullYear();
+
   const userPrompt = `Write a YouTube script about: "${topic}"
 
 Target length: ${wordCount} words (${duration} video)
 ${channelStyle ? `Channel style/tone: ${channelStyle}` : ""}
 ${inspirationLinks ? `Inspiration (analyze the approach from these links for style, not content): ${inspirationLinks}` : ""}
+Current year: ${currentYear} — use this year in any date references, never use a past year.
 
 Apply the TENSION ENGINE at ${tensionLevel} intensity throughout every section. Every transition must create forward momentum — the viewer should never feel like they can safely stop watching.`;
 

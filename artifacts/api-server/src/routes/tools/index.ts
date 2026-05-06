@@ -9,6 +9,8 @@ import {
 
 const router: IRouter = Router();
 
+const CURRENT_YEAR = new Date().getFullYear();
+
 router.post("/tools/titles", async (req, res): Promise<void> => {
   const parsed = GenerateTitlesBody.safeParse(req.body);
   if (!parsed.success) {
@@ -25,6 +27,8 @@ router.post("/tools/titles", async (req, res): Promise<void> => {
       messages: [{
         role: "user",
         content: `Generate exactly 5 viral YouTube titles for the topic: "${topic}"${channelNiche ? ` in the ${channelNiche} niche` : ""}.
+
+The current year is ${CURRENT_YEAR}. If the topic is time-sensitive or trending, use ${CURRENT_YEAR} in the title — never use a past year.
 
 Rules for each title:
 - Maximum 70 characters
@@ -64,6 +68,8 @@ router.post("/tools/ideas", async (req, res): Promise<void> => {
       messages: [{
         role: "user",
         content: `Generate ${count} high-potential YouTube video ideas for a channel in the "${channelNiche}" niche.
+
+The current year is ${CURRENT_YEAR}. Where relevant, reference ${CURRENT_YEAR} in titles — never use a past year like 2024 or 2025.
 
 For each idea provide:
 - A compelling video title
@@ -109,6 +115,8 @@ router.post("/tools/description", async (req, res): Promise<void> => {
         role: "user",
         content: `Write a YouTube video description for a video titled: "${title}"
 ${script ? `\nScript summary/excerpt:\n${script.slice(0, 1000)}` : ""}
+
+The current year is ${CURRENT_YEAR}. Use ${CURRENT_YEAR} for any date references — never use a past year.
 
 The description should:
 - Start with a compelling 2-3 sentence hook (this shows in search results)
