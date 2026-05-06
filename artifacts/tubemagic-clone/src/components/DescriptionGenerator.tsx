@@ -8,8 +8,10 @@ export default function DescriptionGenerator() {
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
 
+  const canGenerate = title.trim().length > 0 || script.trim().length > 0;
+
   async function generate() {
-    if (!title.trim()) return;
+    if (!canGenerate) return;
     setError('');
     setDescription('');
     setLoading(true);
