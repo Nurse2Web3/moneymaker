@@ -1,6 +1,6 @@
 kind = "web"
 previewPath = "/tubemagic-clone/"
-title = "TubeMagic Clone"
+title = "MoneyMaker"
 version = "1.0.0"
 id = "artifacts/tubemagic-clone"
 router = "path"
