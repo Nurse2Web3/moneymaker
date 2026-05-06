@@ -1,12 +1,36 @@
 import { Router, type IRouter } from "express";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
-import { YoutubeTranscript } from "youtube-transcript";
+import { execFile } from "child_process";
+import { promisify } from "util";
+import path from "path";
 import {
   GenerateTitlesBody,
   GenerateIdeasBody,
   GenerateDescriptionBody,
   GenerateTagsBody,
 } from "@workspace/api-zod";
+
+const execFileAsync = promisify(execFile);
+
+// Calls fetch_transcript.py which uses youtube-transcript-api (Python) — bypasses YouTube's server-side blocks
+async function fetchYouTubeTranscript(videoId: string): Promise<{ text: string; start: number; duration: number }[]> {
+  const scriptPath = path.resolve(process.cwd(), "src/fetch_transcript.py");
+  let stdout: string;
+  try {
+    const result = await execFileAsync("python3", [scriptPath, videoId], { timeout: 30000 });
+    stdout = result.stdout;
+  } catch (err: unknown) {
+    const e = err as { stdout?: string; stderr?: string; message?: string };
+    // execFile rejects on non-zero exit but stdout may still contain our JSON error
+    stdout = e.stdout ?? "";
+    if (!stdout) throw new Error(e.stderr ?? e.message ?? "Transcript fetch failed");
+  }
+
+  const data = JSON.parse(stdout.trim()) as { items?: { text: string; start: number; duration: number }[]; error?: string };
+  if (data.error) throw new Error(data.error);
+  if (!data.items || data.items.length === 0) throw new Error("No caption tracks found for this video.");
+  return data.items;
+}
 
 function extractVideoId(input: string): string | null {
   const patterns = [
@@ -475,7 +499,7 @@ router.post("/tools/analyze-video", async (req, res): Promise<void> => {
   }
 
   try {
-    const transcriptItems = await YoutubeTranscript.fetchTranscript(videoId);
+    const transcriptItems = await fetchYouTubeTranscript(videoId);
     if (!transcriptItems || transcriptItems.length === 0) {
       res.status(400).json({ error: "No transcript found. This video may not have captions enabled." });
       return;
@@ -554,10 +578,10 @@ Provide exactly: 4 score breakdown items, 4-8 structure sections, 2-4 tension te
   } catch (err: unknown) {
     req.log.error({ err }, "Video analysis failed");
     const msg = err instanceof Error ? err.message : "Analysis failed";
-    if (msg.includes("Could not retrieve") || msg.includes("transcript") || msg.includes("disabled")) {
-      res.status(400).json({ error: "Transcript not available. The video may have captions disabled, be age-restricted, or private." });
+    if (msg.includes("caption") || msg.includes("transcript") || msg.includes("No caption") || msg.includes("404") || msg.includes("403")) {
+      res.status(400).json({ error: "Transcript not available for this video. It may have captions disabled, be age-restricted, or private." });
     } else {
-      res.status(500).json({ error: "Video analysis failed. Please try again." });
+      res.status(500).json({ error: `Video analysis failed: ${msg}` });
     }
   }
 });
