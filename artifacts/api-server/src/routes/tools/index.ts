@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
+import { generateImageBuffer } from "@workspace/integrations-openai-ai-server/image";
 import { fetchTopYouTubeVideos } from "../../utils/youtube.js";
 import { execFile } from "child_process";
 import { promisify } from "util";
@@ -404,6 +405,54 @@ Return ONLY valid JSON array:
   } catch (err) {
     req.log.error({ err }, "Thumbnail text generation failed");
     res.status(500).json({ error: "Thumbnail text generation failed" });
+  }
+});
+
+router.post("/tools/thumbnail-generate", async (req, res): Promise<void> => {
+  const { title, niche, mainText, subText, style, colorScheme } = req.body as {
+    title: string; niche?: string; mainText: string; subText?: string;
+    style: string; colorScheme: string;
+  };
+  if (!mainText?.trim()) {
+    res.status(400).json({ error: "mainText is required" });
+    return;
+  }
+
+  const colorMap: Record<string, string> = {
+    "Red + White": "bold red background with white text",
+    "Yellow + Black": "bright yellow background with black text",
+    "Black + Gold": "deep black background with gold/yellow text",
+    "Blue + White": "deep blue background with white text",
+    "Orange + Black": "vivid orange background with black text",
+    "Green + White": "dark green background with white text",
+    "Purple + Yellow": "rich purple background with yellow text",
+    "White + Black": "clean white background with black text",
+  };
+
+  const bgDesc = colorMap[colorScheme] || `${colorScheme.toLowerCase()} color scheme`;
+
+  const styleDesc: Record<string, string> = {
+    "Number/List": "bold numbered list style, eye-catching typography",
+    "Shock/Curiosity": "dramatic, shocking composition that demands attention",
+    "Personal Result": "personal achievement style with result-focused layout",
+    "Versus/Comparison": "split comparison layout, before and after",
+    "Question": "curiosity-driven layout with question mark emphasis",
+    "Bold Statement": "powerful bold statement typography, high contrast",
+  };
+
+  const prompt = `YouTube thumbnail, ${bgDesc}, ${styleDesc[style] || "high contrast design"}.
+Large bold text "${mainText}"${subText ? `, smaller text below "${subText}"` : ""}.
+${niche ? `Topic: ${niche}.` : ""}${title ? ` Video: "${title}".` : ""}
+Professional YouTube thumbnail design, 16:9 aspect ratio, high contrast, easy to read at small size.
+Clean composition, no watermarks, no borders, photorealistic lighting if any faces/objects shown.
+Text must be perfectly legible, large and centered. Modern graphic design style.`;
+
+  try {
+    const buffer = await generateImageBuffer(prompt, "1536x1024");
+    res.json({ image: buffer.toString("base64") });
+  } catch (err) {
+    req.log.error({ err }, "Thumbnail image generation failed");
+    res.status(500).json({ error: "Thumbnail image generation failed" });
   }
 });
 
