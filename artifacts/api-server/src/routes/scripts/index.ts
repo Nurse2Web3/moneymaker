@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { GenerateScriptBody } from "@workspace/api-zod";
+import { fetchTopYouTubeVideos } from "../../utils/youtube.js";
 
 const router: IRouter = Router();
 
@@ -86,12 +87,21 @@ router.post("/scripts/generate", async (req, res): Promise<void> => {
 
   const currentYear = new Date().getFullYear();
 
+  // Fetch real YouTube data for this topic to ground the script in what's actually working
+  const topVideos = await fetchTopYouTubeVideos(topic, 10);
+  const ytContext = topVideos.length > 0
+    ? `\n\nREAL YouTube data — top videos on this topic right now:\n${topVideos.map((v, i) =>
+        `${i + 1}. "${v.title}" — ${Number(v.viewCount).toLocaleString()} views (${v.channel})`
+      ).join("\n")}\n\nStudy these real results: what hooks do the titles use? What angles are working? What does the audience clearly want? Your script should position itself as the BEST answer to what this data shows viewers are seeking — while using a fresh angle not already covered.`
+    : "";
+
   const userPrompt = `Write a YouTube script about: "${topic}"
 
 Target length: ${wordCount} words (${duration} video)
 ${channelStyle ? `Channel style/tone: ${channelStyle}` : ""}
 ${inspirationLinks ? `Inspiration (analyze the approach from these links for style, not content): ${inspirationLinks}` : ""}
 Current year: ${currentYear} — use this year in any date references, never use a past year.
+${ytContext}
 
 Apply the TENSION ENGINE at ${tensionLevel} intensity throughout every section. Every transition must create forward momentum — the viewer should never feel like they can safely stop watching.`;
 
