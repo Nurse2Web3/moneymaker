@@ -7,11 +7,13 @@ export default function TitleGenerator() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+  const [dataSource, setDataSource] = useState<string | null>(null);
 
   async function generate() {
     if (!topic.trim()) return;
     setError('');
     setTitles([]);
+    setDataSource(null);
     setLoading(true);
     try {
       const res = await fetch('/api/tools/titles', {
@@ -22,6 +24,7 @@ export default function TitleGenerator() {
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       setTitles(data.titles || []);
+      setDataSource(data.dataSource || null);
     } catch {
       setError('Failed to generate titles. Please try again.');
     } finally {
@@ -64,6 +67,13 @@ export default function TitleGenerator() {
       </div>
 
       {error && <div style={{ background: '#ff4d4d15', border: '1px solid #ff4d4d30', borderRadius: '8px', padding: '12px 16px', color: '#ff4d4d', fontSize: '24px', marginBottom: '16px' }}>{error}</div>}
+
+      {dataSource && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px', padding: '7px 12px', borderRadius: '8px', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)', width: 'fit-content' }}>
+          <span style={{ fontSize: '13px' }}>📊</span>
+          <span style={{ fontSize: '13px', color: '#22c55e', fontWeight: 500 }}>{dataSource} — titles grounded in real performance data</span>
+        </div>
+      )}
 
       {titles.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>

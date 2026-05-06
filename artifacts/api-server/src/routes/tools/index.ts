@@ -48,6 +48,44 @@ const router: IRouter = Router();
 
 const CURRENT_YEAR = new Date().getFullYear();
 
+// Shared YouTube Data API helper — fetches top videos by view count for a query
+async function fetchTopYouTubeVideos(query: string, maxResults = 12): Promise<{
+  title: string; channel: string; publishedAt: string;
+  videoId: string; viewCount: string; likeCount: string; commentCount: string;
+}[]> {
+  const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
+  if (!YOUTUBE_API_KEY) return [];
+  try {
+    const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&order=viewCount&q=${encodeURIComponent(query)}&maxResults=${maxResults}&key=${YOUTUBE_API_KEY}`;
+    const searchRes = await fetch(searchUrl);
+    const searchData = await searchRes.json() as {
+      items?: { id: { videoId: string }; snippet: { title: string; channelTitle: string; publishedAt: string } }[]
+    };
+    if (!searchData.items?.length) return [];
+
+    const videoIds = searchData.items.map(v => v.id.videoId).join(",");
+    const statsUrl = `https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${videoIds}&key=${YOUTUBE_API_KEY}`;
+    const statsRes = await fetch(statsUrl);
+    const statsData = await statsRes.json() as {
+      items?: { id: string; statistics: { viewCount?: string; likeCount?: string; commentCount?: string } }[]
+    };
+    const statsMap: Record<string, { viewCount?: string; likeCount?: string; commentCount?: string }> = {};
+    for (const v of statsData.items ?? []) statsMap[v.id] = v.statistics;
+
+    return searchData.items.map(v => ({
+      title: v.snippet.title,
+      channel: v.snippet.channelTitle,
+      publishedAt: v.snippet.publishedAt,
+      videoId: v.id.videoId,
+      viewCount: statsMap[v.id.videoId]?.viewCount || "0",
+      likeCount: statsMap[v.id.videoId]?.likeCount || "0",
+      commentCount: statsMap[v.id.videoId]?.commentCount || "0",
+    }));
+  } catch {
+    return [];
+  }
+}
+
 router.post("/tools/titles", async (req, res): Promise<void> => {
   const parsed = GenerateTitlesBody.safeParse(req.body);
   if (!parsed.success) {
@@ -58,23 +96,33 @@ router.post("/tools/titles", async (req, res): Promise<void> => {
   const { topic, channelNiche } = parsed.data;
 
   try {
+    const query = channelNiche ? `${topic} ${channelNiche}` : topic;
+    const topVideos = await fetchTopYouTubeVideos(query, 12);
+
+    const ytContext = topVideos.length > 0
+      ? `\n\nREAL YouTube data — top performing videos for "${query}" right now:\n${topVideos.map((v, i) =>
+          `${i + 1}. "${v.title}" — ${Number(v.viewCount).toLocaleString()} views (${v.channel})`
+        ).join("\n")}\n\nStudy the patterns in these real titles: word choice, structure, length, numbers used, emotional triggers. Your 5 titles must be grounded in what actually performs here.`
+      : "";
+
     const message = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 8192,
       messages: [{
         role: "user",
         content: `Generate exactly 5 viral YouTube titles for the topic: "${topic}"${channelNiche ? ` in the ${channelNiche} niche` : ""}.
+${ytContext}
 
-The current year is ${CURRENT_YEAR}. If the topic is time-sensitive or trending, use ${CURRENT_YEAR} in the title — never use a past year.
+The current year is ${CURRENT_YEAR}. If the topic is time-sensitive, use ${CURRENT_YEAR} — never a past year.
 
-Rules for each title:
-- Maximum 70 characters
-- Use power words, numbers, and curiosity gaps
-- Mix different styles: how-to, listicle, personal story, controversy, secret reveal
-- No clickbait that doesn't deliver — every title must be achievable content
-- Each title should feel dramatically different from the others
+Rules:
+- Max 70 characters each
+- Inspired by what's actually working in the real data above — borrow the patterns, not the words
+- Mix different angles: how-to, listicle, personal story, controversy, secret reveal
+- Each title must feel dramatically different from the others
+- Base view potential estimates on the real data you see above
 
-Return ONLY a JSON array of 5 title strings, nothing else. Example: ["Title 1", "Title 2", "Title 3", "Title 4", "Title 5"]`,
+Return ONLY a JSON array of 5 title strings. Example: ["Title 1", "Title 2", "Title 3", "Title 4", "Title 5"]`,
       }],
     });
 
@@ -82,7 +130,7 @@ Return ONLY a JSON array of 5 title strings, nothing else. Example: ["Title 1", 
     const jsonMatch = text.match(/\[[\s\S]*\]/);
     const titles = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
 
-    res.json({ titles });
+    res.json({ titles, dataSource: topVideos.length > 0 ? `Analyzed ${topVideos.length} top YouTube videos` : null });
   } catch (err) {
     req.log.error({ err }, "Title generation failed");
     res.status(500).json({ error: "Title generation failed" });
@@ -99,25 +147,37 @@ router.post("/tools/ideas", async (req, res): Promise<void> => {
   const { channelNiche, count = 8 } = parsed.data;
 
   try {
+    const topVideos = await fetchTopYouTubeVideos(channelNiche, 15);
+
+    const ytContext = topVideos.length > 0
+      ? `\n\nREAL YouTube data — top performing videos in the "${channelNiche}" niche right now:\n${topVideos.map((v, i) =>
+          `${i + 1}. "${v.title}" — ${Number(v.viewCount).toLocaleString()} views, ${Number(v.likeCount).toLocaleString()} likes (${v.channel}, ${v.publishedAt.slice(0,10)})`
+        ).join("\n")}\n\nThis is what's actually getting views. Use this to:
+- Identify content angles that are clearly working
+- Spot gaps where demand exists but no one is covering it well
+- Assign realistic view potential (Viral = 1M+, High = 100K+, Medium = 10K+, Low = under 10K) based on what you see`
+      : "";
+
     const message = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 8192,
       messages: [{
         role: "user",
         content: `Generate ${count} high-potential YouTube video ideas for a channel in the "${channelNiche}" niche.
+${ytContext}
 
-The current year is ${CURRENT_YEAR}. Where relevant, reference ${CURRENT_YEAR} in titles — never use a past year like 2024 or 2025.
+Current year: ${CURRENT_YEAR}. Use ${CURRENT_YEAR} in titles where relevant — never a past year.
 
-For each idea provide:
-- A compelling video title
-- A 1-2 sentence description of what the video covers
-- Estimated view potential (Low / Medium / High / Viral)
+For each idea:
+- Write a compelling, specific video title (not generic)
+- 1-2 sentence description of what it covers and why viewers will want it
+- Estimated view potential calibrated to the real data above
 
-Return ONLY valid JSON array like:
+Return ONLY valid JSON array:
 [
   {
-    "title": "Video Title Here",
-    "description": "What this video covers in 1-2 sentences.",
+    "title": "Specific Video Title Here",
+    "description": "What this covers and why it will perform well based on the data.",
     "estimatedViews": "High"
   }
 ]`,
@@ -128,7 +188,7 @@ Return ONLY valid JSON array like:
     const jsonMatch = text.match(/\[[\s\S]*\]/);
     const ideas = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
 
-    res.json({ ideas });
+    res.json({ ideas, dataSource: topVideos.length > 0 ? `Analyzed ${topVideos.length} top YouTube videos in this niche` : null });
   } catch (err) {
     req.log.error({ err }, "Idea generation failed");
     res.status(500).json({ error: "Idea generation failed" });
@@ -185,21 +245,31 @@ router.post("/tools/tags", async (req, res): Promise<void> => {
   const { title, topic } = parsed.data;
 
   try {
+    const query = topic ? `${title} ${topic}` : title;
+    const topVideos = await fetchTopYouTubeVideos(query, 10);
+
+    const ytContext = topVideos.length > 0
+      ? `\n\nREAL YouTube data — top performing videos for this topic:\n${topVideos.map((v, i) =>
+          `${i + 1}. "${v.title}" — ${Number(v.viewCount).toLocaleString()} views (${v.channel})`
+        ).join("\n")}\n\nExtract the keyword patterns, phrases, and terminology that top videos in this space use. Your tags should mirror real search behavior.`
+      : "";
+
     const message = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 8192,
       messages: [{
         role: "user",
         content: `Generate 20 high-SEO YouTube tags for a video titled: "${title}"${topic ? ` about: ${topic}` : ""}.
+${ytContext}
 
 Rules:
-- Mix broad and specific tags
-- Include 2-3 word and 3-5 word phrases
-- Include the main keyword in multiple forms
-- No tags over 500 characters combined
-- Order by relevance (most important first)
+- Pull keyword terms and phrases that reflect what top videos in this space actually rank for
+- Mix broad (1-2 words) and specific (3-5 words) tags
+- Include the main keyword in multiple forms (singular, plural, with qualifiers)
+- Include niche-specific terminology that real searchers use
+- Order by search volume potential (highest first)
 
-Return ONLY a JSON array of tag strings: ["tag1", "tag2", ...]`,
+Return ONLY a JSON array of 20 tag strings: ["tag1", "tag2", ...]`,
       }],
     });
 
@@ -207,7 +277,7 @@ Return ONLY a JSON array of tag strings: ["tag1", "tag2", ...]`,
     const jsonMatch = text.match(/\[[\s\S]*\]/);
     const tags = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
 
-    res.json({ tags });
+    res.json({ tags, dataSource: topVideos.length > 0 ? `Analyzed ${topVideos.length} top YouTube videos` : null });
   } catch (err) {
     req.log.error({ err }, "Tag generation failed");
     res.status(500).json({ error: "Tag generation failed" });

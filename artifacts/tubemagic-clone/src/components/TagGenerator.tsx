@@ -8,12 +8,14 @@ export default function TagGenerator() {
   const [error, setError] = useState('');
   const [copiedAll, setCopiedAll] = useState(false);
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
+  const [dataSource, setDataSource] = useState<string | null>(null);
 
   async function generate() {
     if (!title.trim()) return;
     setError('');
     setTags([]);
     setSelectedTags(new Set());
+    setDataSource(null);
     setLoading(true);
     try {
       const res = await fetch('/api/tools/tags', {
@@ -25,6 +27,7 @@ export default function TagGenerator() {
       if (data.error) throw new Error(data.error);
       setTags(data.tags || []);
       setSelectedTags(new Set(data.tags || []));
+      setDataSource(data.dataSource || null);
     } catch {
       setError('Failed to generate tags. Please try again.');
     } finally {
@@ -63,6 +66,13 @@ export default function TagGenerator() {
       </div>
 
       {error && <div style={{ background: '#ff4d4d15', border: '1px solid #ff4d4d30', borderRadius: '8px', padding: '12px 16px', color: '#ff4d4d', fontSize: '24px', marginBottom: '16px' }}>{error}</div>}
+
+      {dataSource && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px', padding: '7px 12px', borderRadius: '8px', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)', width: 'fit-content' }}>
+          <span style={{ fontSize: '13px' }}>📊</span>
+          <span style={{ fontSize: '13px', color: '#22c55e', fontWeight: 500 }}>{dataSource} — tags reflect real keyword patterns</span>
+        </div>
+      )}
 
       {tags.length > 0 && (
         <div>
