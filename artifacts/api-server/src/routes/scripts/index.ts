@@ -67,7 +67,10 @@ Write naturally and conversationally — this should sound like a real person sp
 }
 
 router.post("/scripts/generate", async (req, res): Promise<void> => {
-  const parsed = GenerateScriptBody.safeParse(req.body);
+  const parsed = GenerateScriptBody.safeParse({
+    ...req.body,
+    videoLength: Number(req.body.videoLength),
+  });
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
     return;
