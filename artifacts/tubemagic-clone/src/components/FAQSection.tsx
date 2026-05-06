@@ -15,7 +15,7 @@ const faqs = [
   },
   {
     q: 'Can I get a refund?',
-    a: 'Absolutely, if you do not like something and it has not been more than 30 days since your payment, you can send an email at support@tubemagic.com and get a full refund. No questions asked.',
+    a: 'Absolutely, if you do not like something and it has not been more than 30 days since your payment, you can send an email at support@moneymaker.app and get a full refund. No questions asked.',
   },
   {
     q: 'Can I cancel my subscription at any time?',
@@ -23,7 +23,7 @@ const faqs = [
   },
   {
     q: "What if Stripe isn't available in my country?",
-    a: "Reach out to us on support@tubemagic.com and we'll see what we can do. We may be able to offer you a different payment method.",
+    a: "Reach out to us on support@moneymaker.app and we'll see what we can do. We may be able to offer you a different payment method.",
   },
   {
     q: 'Do you have an affiliate program?',
@@ -35,7 +35,7 @@ const faqs = [
   },
   {
     q: 'Do you offer support?',
-    a: 'You can reach us at support@tubemagic.com for anything. We mostly respond in under 12 hours on weekdays. We do prioritize paying customers and have live chat support for them.',
+    a: 'You can reach us at support@moneymaker.app for anything. We mostly respond in under 12 hours on weekdays. We do prioritize paying customers and have live chat support for them.',
   },
 ];
 

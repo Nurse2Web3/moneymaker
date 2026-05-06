@@ -3,11 +3,11 @@ interface Props {
 }
 
 const cards = [
-  { title: 'Multiple AI Models', desc: 'Choose between Claude Sonnet, GPT-4o, and more. Claude is perfect for natural, human-like scripts.', imgUrl: 'https://tubemagic.com/_next/image?url=%2Ffeatures%2Fscript-writing-1.png&w=1920&q=75', hasImg: true },
-  { title: 'Inspiration-Based Writing', desc: 'Input links to top-performing videos and MoneyMaker will extract the best ideas for your script.', imgUrl: 'https://tubemagic.com/_next/image?url=%2Ffeatures%2Fscript-writing-2.png&w=1920&q=75', hasImg: true },
-  { title: 'Custom Video Length', desc: 'Match script length to video time: 100 words = 1 min, 800 = 5 min, 1500 = 10 min, 3000 = 20 min.', imgUrl: 'https://tubemagic.com/_next/image?url=%2Ffeatures%2Fscript-writing-3.png&w=1920&q=75', hasImg: true },
-  { title: 'Channel Writing Style', desc: 'Input your YouTube channel to match tone and structure for consistency.', hasImg: false },
-  { title: 'Fully Editable', desc: 'Regenerate, edit, or chat with your script for fine-tuning.', hasImg: false },
+  { title: 'Multiple AI Models', desc: 'Choose between Claude Sonnet and Claude Opus. Claude is perfect for natural, human-like scripts that don\'t sound AI-generated.', hasImg: false },
+  { title: 'Tension Engine Built-In', desc: 'Every script is automatically engineered with open loops, pattern interrupts, stakes escalation, and curiosity gaps to maximize retention.', hasImg: false },
+  { title: 'Custom Video Length', desc: 'Match script length to video time: 100 words = 1 min, 800 = 5 min, 1500 = 10 min, 3000 = 20 min.', hasImg: false },
+  { title: 'Channel Writing Style', desc: 'Input your YouTube channel to match tone and structure for consistency across all your videos.', hasImg: false },
+  { title: 'Real-Time Streaming', desc: 'Watch your script generate word-by-word in real time — no waiting, no loading screens.', hasImg: false },
   { title: 'Trained on the Best', desc: 'Default training uses top advice from elite YouTube scriptwriters for hooks, retention, and pacing.', hasImg: false },
 ];
 
