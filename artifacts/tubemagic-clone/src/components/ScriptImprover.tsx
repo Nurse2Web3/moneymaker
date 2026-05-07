@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import SaveButton from './SaveButton';
 
 const IMPROVEMENTS = [
   { id: 'hooks', label: 'Stronger Hooks' },
@@ -128,7 +129,12 @@ export default function ScriptImprover() {
               {wordCount > 0 && <span style={{ fontSize: '17px', background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)', padding: '2px 8px', borderRadius: '20px' }}>{wordCount.toLocaleString()} words</span>}
               {loading && <span style={{ fontSize: '17px', color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: '#f59e0b', animation: 'pulse 1s infinite' }} />Rewriting...</span>}
             </div>
-            {result && <button onClick={copy} style={{ padding: '5px 12px', borderRadius: '6px', fontSize: '24px', background: copied ? '#22c55e20' : 'rgba(255,255,255,0.08)', color: copied ? '#22c55e' : 'rgba(255,255,255,0.5)', border: `1px solid ${copied ? '#22c55e40' : 'rgba(255,255,255,0.1)'}`, cursor: 'pointer' }}>{copied ? '✓ Copied' : 'Copy'}</button>}
+            {result && (
+              <div style={{ display: 'flex', gap: 8 }}>
+                <SaveButton type="improved-script" label={`Improved Script (${wordCount}w)`} content={result} />
+                <button onClick={copy} style={{ padding: '5px 12px', borderRadius: '6px', fontSize: '24px', background: copied ? '#22c55e20' : 'rgba(255,255,255,0.08)', color: copied ? '#22c55e' : 'rgba(255,255,255,0.5)', border: `1px solid ${copied ? '#22c55e40' : 'rgba(255,255,255,0.1)'}`, cursor: 'pointer' }}>{copied ? '✓ Copied' : 'Copy'}</button>
+              </div>
+            )}
           </div>
           <div style={{ flex: 1, padding: '24px', overflowY: 'auto', maxHeight: 'calc(100vh - 200px)' }}>
             {error && <div style={{ background: '#ff4d4d15', border: '1px solid #ff4d4d30', borderRadius: '8px', padding: '12px 16px', color: '#ff4d4d', fontSize: '24px', marginBottom: '16px' }}>{error}</div>}

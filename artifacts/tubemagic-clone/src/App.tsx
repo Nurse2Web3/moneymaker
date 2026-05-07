@@ -21,6 +21,8 @@ import VideoAnalyzer from './components/VideoAnalyzer';
 import Teleprompter from './components/Teleprompter';
 import ChannelCloner from './components/ChannelCloner';
 import VideoMaker from './components/VideoMaker';
+import SavedDashboard from './components/SavedDashboard';
+import { useSavedItems } from './lib/savedItems';
 
 type Page =
   | 'home'
@@ -36,7 +38,8 @@ type Page =
   | 'video-analyzer'
   | 'teleprompter'
   | 'channel-cloner'
-  | 'video-maker';
+  | 'video-maker'
+  | 'saved';
 
 const TOOL_GROUPS = [
   {
@@ -75,6 +78,7 @@ const TOOL_GROUPS = [
 function AppNavbar({ page, setPage }: { page: Page; setPage: (p: Page) => void }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const { items: savedItems } = useSavedItems();
 
   useEffect(() => {
     function handler(e: MouseEvent) {
@@ -153,12 +157,43 @@ function AppNavbar({ page, setPage }: { page: Page; setPage: (p: Page) => void }
         )}
       </div>
 
-      {/* CTA */}
-      <button onClick={() => { setPage('script-writer'); setOpen(false); }} style={{
-        background: '#ffffff', color: '#000000',
-        padding: '7px 16px', borderRadius: '8px', fontSize: '17px', fontWeight: 600,
-        border: 'none', cursor: 'pointer',
-      }}>Get started</button>
+      {/* Right side */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        {/* Saved bookmark */}
+        <button
+          onClick={() => { setPage('saved'); setOpen(false); }}
+          title="Saved items"
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '6px 12px', borderRadius: 8,
+            background: page === 'saved' ? 'rgba(167,139,250,0.15)' : 'rgba(255,255,255,0.05)',
+            border: `1px solid ${page === 'saved' ? 'rgba(167,139,250,0.35)' : 'rgba(255,255,255,0.1)'}`,
+            color: page === 'saved' ? '#a78bfa' : 'rgba(255,255,255,0.55)',
+            cursor: 'pointer', fontSize: 13, fontWeight: 600,
+          }}
+        >
+          <svg width="13" height="15" viewBox="0 0 12 15" fill={page === 'saved' ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M1 1h10v13l-5-3.5L1 14V1z" />
+          </svg>
+          Saved
+          {savedItems.length > 0 && (
+            <span style={{
+              background: page === 'saved' ? '#a78bfa' : 'rgba(167,139,250,0.7)',
+              color: '#fff', borderRadius: 20, fontSize: 10, fontWeight: 700,
+              padding: '1px 6px', lineHeight: 1.5,
+            }}>
+              {savedItems.length}
+            </span>
+          )}
+        </button>
+
+        {/* CTA */}
+        <button onClick={() => { setPage('script-writer'); setOpen(false); }} style={{
+          background: '#ffffff', color: '#000000',
+          padding: '7px 16px', borderRadius: '8px', fontSize: '17px', fontWeight: 600,
+          border: 'none', cursor: 'pointer',
+        }}>Get started</button>
+      </div>
     </nav>
   );
 }
@@ -198,6 +233,7 @@ export default function App() {
         {page === 'thumbnail-generator' && <ThumbnailGenerator />}
         {page === 'channel-cloner' && <ChannelCloner />}
         {page === 'video-maker' && <VideoMaker />}
+        {page === 'saved' && <SavedDashboard />}
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import SaveButton from './SaveButton';
 
 export default function DescriptionGenerator() {
   const [title, setTitle] = useState('');
@@ -76,9 +77,12 @@ export default function DescriptionGenerator() {
         <div style={{ background: '#111', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', overflow: 'hidden' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: '#0d0d0d' }}>
             <span style={{ fontSize: '17px', fontWeight: 500, color: 'rgba(255,255,255,0.6)' }}>Generated Description</span>
-            <button onClick={copy} style={{ padding: '5px 12px', borderRadius: '6px', fontSize: '24px', background: copied ? '#22c55e20' : 'rgba(255,255,255,0.08)', color: copied ? '#22c55e' : 'rgba(255,255,255,0.5)', border: `1px solid ${copied ? '#22c55e40' : 'rgba(255,255,255,0.1)'}`, cursor: 'pointer' }}>
-              {copied ? '✓ Copied' : 'Copy'}
-            </button>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <SaveButton type="description" label={title || 'YouTube Description'} content={description} meta={title ? `Video: ${title}` : undefined} />
+              <button onClick={copy} style={{ padding: '5px 12px', borderRadius: '6px', fontSize: '24px', background: copied ? '#22c55e20' : 'rgba(255,255,255,0.08)', color: copied ? '#22c55e' : 'rgba(255,255,255,0.5)', border: `1px solid ${copied ? '#22c55e40' : 'rgba(255,255,255,0.1)'}`, cursor: 'pointer' }}>
+                {copied ? '✓ Copied' : 'Copy'}
+              </button>
+            </div>
           </div>
           <pre style={{ padding: '16px', whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: '17px', lineHeight: 1.8, color: 'rgba(255,255,255,0.8)', fontFamily: 'inherit', margin: 0 }}>
             {description}

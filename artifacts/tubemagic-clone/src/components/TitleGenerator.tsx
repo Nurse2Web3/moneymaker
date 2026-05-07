@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import SaveButton from './SaveButton';
 
 export default function TitleGenerator() {
   const [topic, setTopic] = useState('');
@@ -80,9 +81,12 @@ export default function TitleGenerator() {
           {titles.map((t, i) => (
             <div key={i} style={{ background: '#111', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
               <span style={{ fontSize: '24px', color: '#fff', lineHeight: 1.4 }}>{t}</span>
-              <button onClick={() => copy(t, i)} style={{ flexShrink: 0, padding: '5px 12px', borderRadius: '6px', fontSize: '24px', background: copiedIdx === i ? '#22c55e20' : 'rgba(255,255,255,0.08)', color: copiedIdx === i ? '#22c55e' : 'rgba(255,255,255,0.5)', border: `1px solid ${copiedIdx === i ? '#22c55e40' : 'rgba(255,255,255,0.1)'}`, cursor: 'pointer' }}>
-                {copiedIdx === i ? '✓' : 'Copy'}
-              </button>
+              <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                <SaveButton type="title" label={t} content={t} meta={topic ? `Topic: ${topic}` : undefined} />
+                <button onClick={() => copy(t, i)} style={{ padding: '5px 12px', borderRadius: '6px', fontSize: '24px', background: copiedIdx === i ? '#22c55e20' : 'rgba(255,255,255,0.08)', color: copiedIdx === i ? '#22c55e' : 'rgba(255,255,255,0.5)', border: `1px solid ${copiedIdx === i ? '#22c55e40' : 'rgba(255,255,255,0.1)'}`, cursor: 'pointer' }}>
+                  {copiedIdx === i ? '✓' : 'Copy'}
+                </button>
+              </div>
             </div>
           ))}
         </div>

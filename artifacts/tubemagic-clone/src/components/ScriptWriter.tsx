@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import SaveButton from './SaveButton';
 
 const MODELS = [
   { id: 'claude-sonnet', label: 'Claude Sonnet', icon: '✦', desc: 'Fast & smart' },
@@ -301,15 +302,18 @@ export default function ScriptWriter() {
               )}
             </div>
             {script && (
-              <button onClick={handleCopy} style={{
-                padding: '6px 14px', borderRadius: '6px', fontSize: '24px', fontWeight: 500,
-                background: copied ? '#22c55e20' : 'rgba(255,255,255,0.08)',
-                color: copied ? '#22c55e' : 'rgba(255,255,255,0.6)',
-                border: `1px solid ${copied ? '#22c55e40' : 'rgba(255,255,255,0.1)'}`,
-                cursor: 'pointer',
-              }}>
-                {copied ? '✓ Copied' : 'Copy'}
-              </button>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <SaveButton type="script" label={topic.slice(0, 60) || 'Script'} content={script} meta={topic ? `Topic: ${topic}` : undefined} />
+                <button onClick={handleCopy} style={{
+                  padding: '6px 14px', borderRadius: '6px', fontSize: '24px', fontWeight: 500,
+                  background: copied ? '#22c55e20' : 'rgba(255,255,255,0.08)',
+                  color: copied ? '#22c55e' : 'rgba(255,255,255,0.6)',
+                  border: `1px solid ${copied ? '#22c55e40' : 'rgba(255,255,255,0.1)'}`,
+                  cursor: 'pointer',
+                }}>
+                  {copied ? '✓ Copied' : 'Copy'}
+                </button>
+              </div>
             )}
           </div>
 

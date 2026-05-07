@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import SaveButton from './SaveButton';
 
 const VIEW_COLORS: Record<string, string> = {
   Low: '#6b7280',
@@ -74,9 +75,12 @@ export default function IdeaGenerator() {
             <div key={i} style={{ background: '#111', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '18px' }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>
                 <h3 style={{ fontSize: '24px', fontWeight: 600, color: '#fff', lineHeight: 1.4, flex: 1 }}>{idea.title}</h3>
-                <span style={{ flexShrink: 0, fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '20px', background: (VIEW_COLORS[idea.estimatedViews] || '#6b7280') + '20', color: VIEW_COLORS[idea.estimatedViews] || '#6b7280', border: `1px solid ${(VIEW_COLORS[idea.estimatedViews] || '#6b7280')}40`, letterSpacing: '0.05em' }}>
-                  {idea.estimatedViews}
-                </span>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
+                  <span style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '20px', background: (VIEW_COLORS[idea.estimatedViews] || '#6b7280') + '20', color: VIEW_COLORS[idea.estimatedViews] || '#6b7280', border: `1px solid ${(VIEW_COLORS[idea.estimatedViews] || '#6b7280')}40`, letterSpacing: '0.05em' }}>
+                    {idea.estimatedViews}
+                  </span>
+                  <SaveButton type="idea" label={idea.title} content={`${idea.title}\n\n${idea.description}`} meta={`Niche: ${niche}`} />
+                </div>
               </div>
               <p style={{ fontSize: '24px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.6 }}>{idea.description}</p>
             </div>

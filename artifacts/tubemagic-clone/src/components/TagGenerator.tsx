@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import SaveButton from './SaveButton';
 
 export default function TagGenerator() {
   const [title, setTitle] = useState('');
@@ -78,9 +79,12 @@ export default function TagGenerator() {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
             <span style={{ fontSize: '17px', color: 'rgba(255,255,255,0.45)' }}>{selectedTags.size} of {tags.length} selected</span>
-            <button onClick={copySelected} style={{ padding: '6px 14px', borderRadius: '6px', fontSize: '24px', background: copiedAll ? '#22c55e20' : 'rgba(255,255,255,0.08)', color: copiedAll ? '#22c55e' : 'rgba(255,255,255,0.5)', border: `1px solid ${copiedAll ? '#22c55e40' : 'rgba(255,255,255,0.1)'}`, cursor: 'pointer' }}>
-              {copiedAll ? '✓ Copied!' : 'Copy selected'}
-            </button>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <SaveButton type="tags" label={`Tags for: ${title}`} content={[...selectedTags].join(', ')} meta={`Video: ${title}`} />
+              <button onClick={copySelected} style={{ padding: '6px 14px', borderRadius: '6px', fontSize: '24px', background: copiedAll ? '#22c55e20' : 'rgba(255,255,255,0.08)', color: copiedAll ? '#22c55e' : 'rgba(255,255,255,0.5)', border: `1px solid ${copiedAll ? '#22c55e40' : 'rgba(255,255,255,0.1)'}`, cursor: 'pointer' }}>
+                {copiedAll ? '✓ Copied!' : 'Copy selected'}
+              </button>
+            </div>
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
             {tags.map(tag => (

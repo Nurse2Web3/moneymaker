@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import SaveButton from './SaveButton';
 
 const HOOK_STYLES = [
   { id: 'bold_claim', label: 'Bold Claim', example: '"Most creators will never tell you this..."' },
@@ -92,9 +93,12 @@ export default function HookGenerator() {
             <div key={i} style={{ background: '#111', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '18px 20px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
                 <span style={{ fontSize: '17px', fontWeight: 700, color: styleColors[h.style] || '#fff', letterSpacing: '0.05em', textTransform: 'uppercase' }}>{h.style}</span>
-                <button onClick={() => copy(h.hook, i)} style={{ padding: '4px 12px', borderRadius: '6px', fontSize: '17px', background: copiedIdx === i ? '#22c55e20' : 'rgba(255,255,255,0.07)', color: copiedIdx === i ? '#22c55e' : 'rgba(255,255,255,0.4)', border: `1px solid ${copiedIdx === i ? '#22c55e40' : 'rgba(255,255,255,0.1)'}`, cursor: 'pointer' }}>
-                  {copiedIdx === i ? '✓ Copied' : 'Copy'}
-                </button>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <SaveButton type="hook" label={h.style + ' Hook'} content={h.hook} meta={`Topic: ${topic}`} />
+                  <button onClick={() => copy(h.hook, i)} style={{ padding: '4px 12px', borderRadius: '6px', fontSize: '17px', background: copiedIdx === i ? '#22c55e20' : 'rgba(255,255,255,0.07)', color: copiedIdx === i ? '#22c55e' : 'rgba(255,255,255,0.4)', border: `1px solid ${copiedIdx === i ? '#22c55e40' : 'rgba(255,255,255,0.1)'}`, cursor: 'pointer' }}>
+                    {copiedIdx === i ? '✓ Copied' : 'Copy'}
+                  </button>
+                </div>
               </div>
               <p style={{ fontSize: '24px', color: '#fff', lineHeight: 1.6, marginBottom: '8px', fontWeight: 500 }}>"{h.hook}"</p>
               <p style={{ fontSize: '24px', color: 'rgba(255,255,255,0.4)', lineHeight: 1.5 }}>💡 {h.why}</p>
