@@ -856,6 +856,9 @@ router.post("/tools/channel-dna", async (req, res): Promise<void> => {
 
   const send = (data: object) => res.write(`data: ${JSON.stringify(data)}\n\n`);
 
+  // Heartbeat — keeps the proxy from closing the SSE connection during long ops
+  const heartbeat = setInterval(() => res.write(': ping\n\n'), 10000);
+
   try {
     send({ type: 'status', message: 'Looking up channel…' });
     const channel = await fetchChannelData(channelUrl, YOUTUBE_API_KEY);
@@ -865,19 +868,23 @@ router.post("/tools/channel-dna", async (req, res): Promise<void> => {
     const topVideos = await fetchChannelTopVideos(channel.id, YOUTUBE_API_KEY, 10);
     send({ type: 'videos', data: topVideos });
 
-    // Fetch transcripts for top 3 videos
-    const transcripts: { title: string; text: string }[] = [];
-    for (let i = 0; i < Math.min(3, topVideos.length); i++) {
-      const v = topVideos[i];
-      send({ type: 'status', message: `Reading transcript ${i + 1}/3: "${v.title.slice(0, 40)}…"` });
-      try {
-        const segments = await fetchYouTubeTranscript(v.videoId);
-        const fullText = segments.map(s => s.text).join(' ');
-        transcripts.push({ title: v.title, text: fullText.slice(0, 3500) });
-      } catch {
-        // transcript unavailable, skip silently
-      }
-    }
+    // Fetch transcripts for top 3 videos IN PARALLEL with a per-video timeout
+    send({ type: 'status', message: 'Reading transcripts (up to 3 videos in parallel)…' });
+    const transcriptTargets = topVideos.slice(0, 3);
+    const transcriptResults = await Promise.allSettled(
+      transcriptTargets.map(v =>
+        Promise.race([
+          fetchYouTubeTranscript(v.videoId),
+          new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 18000)),
+        ]).then(segments => ({
+          title: v.title,
+          text: (segments as { text: string }[]).map(s => s.text).join(' ').slice(0, 3500),
+        }))
+      )
+    );
+    const transcripts = transcriptResults
+      .filter((r): r is PromiseFulfilledResult<{ title: string; text: string }> => r.status === 'fulfilled')
+      .map(r => r.value);
 
     send({ type: 'status', message: 'Analyzing channel DNA with AI…' });
 
@@ -1027,9 +1034,11 @@ Sound EXACTLY like the channel we analyzed. Same rhythm, energy, vocabulary, and
       }
     }
 
+    clearInterval(heartbeat);
     send({ type: 'done' });
     res.end();
   } catch (err) {
+    clearInterval(heartbeat);
     const msg = err instanceof Error ? err.message : 'Channel DNA analysis failed';
     req.log.error({ err }, 'Channel DNA failed');
     send({ type: 'error', message: msg });
