@@ -785,7 +785,7 @@ async function fetchChannelData(channelUrl: string, apiKey: string) {
   const channelData = await channelRes.json() as {
     items?: {
       id: string;
-      snippet: { title: string; description: string; thumbnails: { default: { url: string } } };
+      snippet: { title: string; description: string; publishedAt: string; thumbnails: { default: { url: string } } };
       statistics: { subscriberCount?: string; videoCount?: string; viewCount?: string };
     }[];
   };
@@ -796,6 +796,7 @@ async function fetchChannelData(channelUrl: string, apiKey: string) {
     id: ch.id,
     name: ch.snippet.title,
     description: ch.snippet.description,
+    publishedAt: ch.snippet.publishedAt,
     thumbnail: ch.snippet.thumbnails.default.url,
     subscribers: ch.statistics.subscriberCount || '0',
     videoCount: ch.statistics.videoCount || '0',
@@ -899,6 +900,7 @@ router.post("/tools/channel-dna", async (req, res): Promise<void> => {
 
 CHANNEL: ${channel.name}
 SUBSCRIBERS: ${Number(channel.subscribers).toLocaleString()}
+CHANNEL CREATED: ${new Date(channel.publishedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} (${Math.floor((Date.now() - new Date(channel.publishedAt).getTime()) / 86400000)} days old — use this exact age, do NOT estimate)
 DESCRIPTION: ${channel.description.slice(0, 500)}
 
 TOP VIDEOS (by views):
@@ -945,16 +947,19 @@ Return ONLY valid JSON:
     const dna = dnaMatch ? JSON.parse(dnaMatch[0]) : {};
     send({ type: 'dna', data: dna });
 
-    // Generate 5 video ideas
-    send({ type: 'status', message: 'Generating video ideas in their style…' });
+    // Generate 5 niche transfer suggestions
+    send({ type: 'status', message: 'Finding niches where this style would dominate…' });
     const ideasMsg = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 2048,
       messages: [{
         role: 'user',
-        content: `You are a YouTube strategist. Based on this channel's DNA, generate 5 ORIGINAL video ideas for a new creator who wants to use the same style, tone, and approach — but with fresh original content.
+        content: `You are a YouTube strategist. This channel has a specific content style and DNA. Your job is to identify 5 COMPLETELY DIFFERENT NICHES where someone could apply the EXACT SAME style, format, and approach to build a new successful channel from scratch.
+
+Do NOT suggest more content for the same channel. Suggest entirely new channel niches that would benefit from this style being applied there.
 
 CHANNEL DNA:
+Original Niche: ${channel.name} (use this ONLY to know what NOT to suggest — pick completely different niches)
 Hook Style: ${dna.hookStyle || ''}
 Tone: ${dna.tone || ''}
 Pacing: ${dna.pacing || ''}
@@ -962,23 +967,22 @@ Content Structure: ${dna.contentStructure || ''}
 Emotional Triggers: ${(dna.emotionalTriggers as string[] || []).join(', ')}
 Unique Patterns: ${(dna.uniquePatterns as string[] || []).join(', ')}
 
-TOP TITLES FOR INSPIRATION (do NOT copy or directly reference these):
-${topVideos.slice(0, 5).map(v => `- "${v.title}"`).join('\n')}
-
-Return ONLY a valid JSON array:
+Return ONLY a valid JSON array of 5 different niches:
 [
   {
-    "title": "The video title (match the channel's title style)",
-    "angle": "The unique angle that makes this stand out",
-    "hook": "The opening hook line for this video (first 15 seconds, in the channel's exact voice)",
-    "why": "Why this idea works for this channel's audience"
+    "niche": "Specific niche name (be specific, not generic — e.g. 'AI tools for freelancers' not just 'tech')",
+    "whyItWorks": "1-2 sentences on why THIS channel's exact style would win in this niche right now",
+    "gap": "What's missing in this niche that this style would fill",
+    "exampleTitle": "A specific video title for this niche written in the channel's exact style",
+    "hook": "The opening hook line for that video (15 seconds, in the channel's exact voice/tone)",
+    "cpmRange": "Estimated advertiser CPM range e.g. $8-$25"
   }
 ]`,
       }],
     });
     const ideasText = ideasMsg.content[0].type === 'text' ? ideasMsg.content[0].text : '[]';
     const ideasMatch = ideasText.match(/\[[\s\S]*\]/);
-    const ideas = (ideasMatch ? JSON.parse(ideasMatch[0]) : []) as { title: string; angle: string; hook: string; why: string }[];
+    const ideas = (ideasMatch ? JSON.parse(ideasMatch[0]) : []) as { niche: string; whyItWorks: string; gap: string; exampleTitle: string; hook: string; cpmRange: string }[];
     send({ type: 'ideas', data: ideas });
 
     // Write full script for the top idea (streaming)
@@ -998,11 +1002,12 @@ Return ONLY a valid JSON array:
 - Audience relationship: ${dna.audienceRelationship || ''}`,
         messages: [{
           role: 'user',
-          content: `Write a complete YouTube script for this idea:
+          content: `Write a complete YouTube script for a video in this niche:
 
-TITLE: ${ideas[0].title}
-ANGLE: ${ideas[0].angle}
+NICHE: ${ideas[0].niche}
+TITLE: ${ideas[0].exampleTitle}
 HOOK LINE: ${ideas[0].hook}
+GAP THIS FILLS: ${ideas[0].gap}
 
 Write the FULL script with clear section labels:
 [HOOK] — first 15 seconds

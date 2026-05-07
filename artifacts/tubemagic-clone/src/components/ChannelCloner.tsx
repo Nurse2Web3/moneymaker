@@ -4,6 +4,7 @@ interface ChannelData {
   id: string;
   name: string;
   description: string;
+  publishedAt: string;
   thumbnail: string;
   subscribers: string;
   videoCount: string;
@@ -30,11 +31,13 @@ interface ChannelDNA {
   summary: string;
 }
 
-interface VideoIdea {
-  title: string;
-  angle: string;
+interface NicheSuggestion {
+  niche: string;
+  whyItWorks: string;
+  gap: string;
+  exampleTitle: string;
   hook: string;
-  why: string;
+  cpmRange: string;
 }
 
 interface Screenshot {
@@ -59,6 +62,15 @@ function StatusLine({ message }: { message: string }) {
   );
 }
 
+function channelAge(publishedAt: string): string {
+  const days = Math.floor((Date.now() - new Date(publishedAt).getTime()) / 86400000);
+  if (days < 30) return `${days} day${days !== 1 ? 's' : ''} old`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months} month${months !== 1 ? 's' : ''} old`;
+  const years = Math.floor(days / 365);
+  return `${years} year${years !== 1 ? 's' : ''} old`;
+}
+
 function ChannelCard({ channel }: { channel: ChannelData }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px 20px', background: '#111', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', marginBottom: '16px' }}>
@@ -69,6 +81,9 @@ function ChannelCard({ channel }: { channel: ChannelData }) {
           <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)' }}>{formatNum(channel.subscribers)} subscribers</span>
           <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)' }}>{formatNum(channel.videoCount)} videos</span>
           <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)' }}>{formatNum(channel.totalViews)} total views</span>
+          {channel.publishedAt && (
+            <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)' }}>📅 {channelAge(channel.publishedAt)}</span>
+          )}
         </div>
       </div>
       <a href={`https://youtube.com/channel/${channel.id}`} target="_blank" rel="noreferrer" style={{ fontSize: '12px', color: 'rgba(255,255,255,0.3)', textDecoration: 'none' }}>↗ View</a>
@@ -122,22 +137,43 @@ function DNACard({ dna }: { dna: ChannelDNA }) {
   );
 }
 
-function IdeaCard({ idea, index, isFirst }: { idea: VideoIdea; index: number; isFirst: boolean }) {
+function NicheCard({ niche, index, isFirst }: { niche: NicheSuggestion; index: number; isFirst: boolean }) {
+  const color = isFirst ? '#34d399' : '#60a5fa';
+  const colorAlpha = isFirst ? 'rgba(52,211,153,' : 'rgba(96,165,250,';
   return (
-    <div style={{ background: '#111', border: `1px solid ${isFirst ? 'rgba(52,211,153,0.3)' : 'rgba(255,255,255,0.08)'}`, borderRadius: '12px', padding: '18px 20px', marginBottom: '10px' }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '10px' }}>
-        <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: isFirst ? 'rgba(52,211,153,0.15)' : 'rgba(255,255,255,0.07)', color: isFirst ? '#34d399' : 'rgba(255,255,255,0.4)', fontSize: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '2px' }}>{index + 1}</div>
+    <div style={{ background: '#111', border: `1px solid ${colorAlpha}0.2)`, borderRadius: '12px', overflow: 'hidden', marginBottom: '10px' }}>
+      {/* Header */}
+      <div style={{ padding: '14px 18px', background: `${colorAlpha}0.06)`, borderBottom: `1px solid ${colorAlpha}0.1)`, display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: `${colorAlpha}0.15)`, color, fontSize: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{index + 1}</div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: '16px', fontWeight: 600, color: '#fff', marginBottom: '6px' }}>{idea.title}</div>
-          <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)', lineHeight: 1.4, marginBottom: '8px' }}>{idea.angle}</div>
-          {isFirst && <div style={{ fontSize: '11px', fontWeight: 600, color: '#34d399', background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.2)', borderRadius: '4px', padding: '2px 8px', display: 'inline-block', marginBottom: '8px' }}>★ Script generated for this idea</div>}
+          <div style={{ fontSize: '16px', fontWeight: 700, color, marginBottom: '1px' }}>{niche.niche}</div>
+          <div style={{ fontSize: '12px', color: `${colorAlpha}0.6)`, fontWeight: 600 }}>CPM {niche.cpmRange}</div>
+        </div>
+        {isFirst && <div style={{ fontSize: '11px', fontWeight: 600, color, background: `${colorAlpha}0.08)`, border: `1px solid ${colorAlpha}0.25)`, borderRadius: '4px', padding: '2px 8px' }}>★ Script written for this niche</div>}
+      </div>
+
+      <div style={{ padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {/* Why it works */}
+        <div>
+          <div style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '3px' }}>Why this style wins here</div>
+          <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)', lineHeight: 1.5 }}>{niche.whyItWorks}</div>
+        </div>
+        {/* Gap */}
+        <div>
+          <div style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '3px' }}>Gap to fill</div>
+          <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.55)', lineHeight: 1.5 }}>{niche.gap}</div>
+        </div>
+        {/* Example title */}
+        <div style={{ padding: '10px 14px', background: 'rgba(255,255,255,0.04)', borderRadius: '8px', borderLeft: `2px solid ${colorAlpha}0.4)` }}>
+          <div style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>Example title (in their style)</div>
+          <div style={{ fontSize: '14px', fontWeight: 600, color: '#fff', lineHeight: 1.4 }}>{niche.exampleTitle}</div>
+        </div>
+        {/* Hook */}
+        <div style={{ padding: '10px 14px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', borderLeft: '2px solid rgba(255,255,255,0.1)' }}>
+          <div style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>Opening hook</div>
+          <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.65)', fontStyle: 'italic', lineHeight: 1.5 }}>"{niche.hook}"</div>
         </div>
       </div>
-      <div style={{ padding: '10px 14px', background: 'rgba(255,255,255,0.04)', borderRadius: '8px', marginBottom: '8px', borderLeft: '2px solid rgba(255,255,255,0.15)' }}>
-        <div style={{ fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '4px' }}>Opening Hook</div>
-        <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.75)', fontStyle: 'italic', lineHeight: 1.5 }}>"{idea.hook}"</div>
-      </div>
-      <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.35)', lineHeight: 1.4 }}>{idea.why}</div>
     </div>
   );
 }
@@ -181,7 +217,7 @@ export default function ChannelCloner() {
   const [channel, setChannel] = useState<ChannelData | null>(null);
   const [videos, setVideos] = useState<TopVideo[]>([]);
   const [dna, setDna] = useState<ChannelDNA | null>(null);
-  const [ideas, setIdeas] = useState<VideoIdea[]>([]);
+  const [ideas, setIdeas] = useState<NicheSuggestion[]>([]);
   const [script, setScript] = useState('');
   const [done, setDone] = useState(false);
   const [error, setError] = useState('');
@@ -260,7 +296,7 @@ export default function ChannelCloner() {
             else if (event.type === 'channel') setChannel(event.data as ChannelData);
             else if (event.type === 'videos') setVideos(event.data as TopVideo[]);
             else if (event.type === 'dna') setDna(event.data as ChannelDNA);
-            else if (event.type === 'ideas') setIdeas(event.data as VideoIdea[]);
+            else if (event.type === 'ideas') setIdeas(event.data as NicheSuggestion[]);
             else if (event.type === 'script_delta') {
               scriptAccum += event.text!;
               setScript(scriptAccum);
@@ -288,7 +324,7 @@ export default function ChannelCloner() {
 
       <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>Channel DNA</h1>
       <p style={{ fontSize: '15px', color: 'rgba(255,255,255,0.4)', marginBottom: '28px', lineHeight: 1.6 }}>
-        Paste any YouTube channel URL. We'll analyze their top videos, transcripts, and style — then give you a DNA breakdown, 5 original ideas in their voice, and a full script.
+        Paste any YouTube channel URL. We'll analyze their style and DNA — then suggest 5 completely different niches where you could replicate the same approach, plus a full script to get started.
       </p>
 
       {/* Input */}
@@ -376,14 +412,17 @@ export default function ChannelCloner() {
       {/* DNA */}
       {dna && <DNACard dna={dna} />}
 
-      {/* Ideas */}
+      {/* Niche suggestions */}
       {ideas.length > 0 && (
         <div style={{ marginBottom: '20px' }}>
-          <div style={{ fontSize: '16px', fontWeight: 700, color: '#fff', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span>💡</span> 5 Original Video Ideas
+          <div style={{ fontSize: '16px', fontWeight: 700, color: '#fff', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span>🚀</span> 5 Niches Where This Style Would Win
           </div>
-          {ideas.map((idea, i) => (
-            <IdeaCard key={i} idea={idea} index={i} isFirst={i === 0} />
+          <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.35)', marginBottom: '14px' }}>
+            Different niches you could enter using the exact same content approach — first niche gets a full script
+          </div>
+          {ideas.map((niche, i) => (
+            <NicheCard key={i} niche={niche} index={i} isFirst={i === 0} />
           ))}
         </div>
       )}
