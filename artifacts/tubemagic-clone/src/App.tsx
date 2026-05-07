@@ -19,6 +19,7 @@ import ThumbnailGenerator from './components/ThumbnailGenerator';
 import NicheAnalyzer from './components/NicheAnalyzer';
 import VideoAnalyzer from './components/VideoAnalyzer';
 import Teleprompter from './components/Teleprompter';
+import ChannelCloner from './components/ChannelCloner';
 
 type Page =
   | 'home'
@@ -32,7 +33,8 @@ type Page =
   | 'thumbnail-generator'
   | 'niche-analyzer'
   | 'video-analyzer'
-  | 'teleprompter';
+  | 'teleprompter'
+  | 'channel-cloner';
 
 const TOOL_GROUPS = [
   {
@@ -52,6 +54,7 @@ const TOOL_GROUPS = [
       { id: 'idea-generator' as Page, label: 'Video Ideas', icon: '💡', desc: 'High-potential ideas for your niche' },
       { id: 'niche-analyzer' as Page, label: 'Niche Analyzer', icon: '🔬', desc: 'Gaps, opportunities & quick wins' },
       { id: 'video-analyzer' as Page, label: 'Video Analyzer', icon: '📡', desc: 'Decode any video\'s transcript & formula' },
+      { id: 'channel-cloner' as Page, label: 'Channel DNA', icon: '🧬', desc: 'Clone any channel\'s style & voice' },
     ],
   },
   {
@@ -190,6 +193,7 @@ export default function App() {
         {page === 'description-generator' && <DescriptionGenerator />}
         {page === 'tag-generator' && <TagGenerator />}
         {page === 'thumbnail-generator' && <ThumbnailGenerator />}
+        {page === 'channel-cloner' && <ChannelCloner />}
       </div>
     </div>
   );

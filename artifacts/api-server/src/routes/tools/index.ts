@@ -743,4 +743,293 @@ Return ONLY valid JSON array:
   }
 });
 
+// ──────────────────────────────────────────────
+// Channel DNA helpers
+// ──────────────────────────────────────────────
+
+function parseChannelInfo(url: string): { type: 'handle' | 'id' | 'username' | 'search'; value: string } | null {
+  const u = url.trim();
+  const handleMatch = u.match(/youtube\.com\/@([^/?&\s]+)/);
+  if (handleMatch) return { type: 'handle', value: `@${handleMatch[1]}` };
+  const channelIdMatch = u.match(/youtube\.com\/channel\/(UC[^/?&\s]+)/);
+  if (channelIdMatch) return { type: 'id', value: channelIdMatch[1] };
+  const userMatch = u.match(/youtube\.com\/user\/([^/?&\s]+)/);
+  if (userMatch) return { type: 'username', value: userMatch[1] };
+  const customMatch = u.match(/youtube\.com\/c\/([^/?&\s]+)/);
+  if (customMatch) return { type: 'search', value: customMatch[1] };
+  const bareHandle = u.match(/^@([^/?&\s]+)$/);
+  if (bareHandle) return { type: 'handle', value: `@${bareHandle[1]}` };
+  return null;
+}
+
+async function fetchChannelData(channelUrl: string, apiKey: string) {
+  const info = parseChannelInfo(channelUrl);
+  if (!info) throw new Error("Could not parse channel URL. Please use a full YouTube channel URL like https://youtube.com/@channelname");
+
+  let channelApiUrl = '';
+  if (info.type === 'handle') {
+    channelApiUrl = `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&forHandle=${encodeURIComponent(info.value)}&key=${apiKey}`;
+  } else if (info.type === 'id') {
+    channelApiUrl = `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&id=${info.value}&key=${apiKey}`;
+  } else if (info.type === 'username') {
+    channelApiUrl = `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&forUsername=${info.value}&key=${apiKey}`;
+  } else {
+    const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=channel&q=${encodeURIComponent(info.value)}&maxResults=1&key=${apiKey}`;
+    const searchRes = await fetch(searchUrl);
+    const searchData = await searchRes.json() as { items?: { id: { channelId: string } }[] };
+    if (!searchData.items?.length) throw new Error("Channel not found. Try pasting the full channel URL.");
+    channelApiUrl = `https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&id=${searchData.items[0].id.channelId}&key=${apiKey}`;
+  }
+
+  const channelRes = await fetch(channelApiUrl);
+  const channelData = await channelRes.json() as {
+    items?: {
+      id: string;
+      snippet: { title: string; description: string; thumbnails: { default: { url: string } } };
+      statistics: { subscriberCount?: string; videoCount?: string; viewCount?: string };
+    }[];
+  };
+
+  if (!channelData.items?.length) throw new Error("Channel not found. Please check the URL and try again.");
+  const ch = channelData.items[0];
+  return {
+    id: ch.id,
+    name: ch.snippet.title,
+    description: ch.snippet.description,
+    thumbnail: ch.snippet.thumbnails.default.url,
+    subscribers: ch.statistics.subscriberCount || '0',
+    videoCount: ch.statistics.videoCount || '0',
+    totalViews: ch.statistics.viewCount || '0',
+  };
+}
+
+async function fetchChannelTopVideos(channelId: string, apiKey: string, maxResults = 10) {
+  const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&type=video&order=viewCount&maxResults=${maxResults}&key=${apiKey}`;
+  const searchRes = await fetch(searchUrl);
+  const searchData = await searchRes.json() as {
+    items?: { id: { videoId: string }; snippet: { title: string; publishedAt: string } }[];
+  };
+  if (!searchData.items?.length) return [];
+
+  const videoIds = searchData.items.map(v => v.id.videoId).join(',');
+  const statsUrl = `https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${videoIds}&key=${apiKey}`;
+  const statsRes = await fetch(statsUrl);
+  const statsData = await statsRes.json() as {
+    items?: { id: string; statistics: { viewCount?: string; likeCount?: string } }[];
+  };
+  const statsMap: Record<string, { viewCount?: string; likeCount?: string }> = {};
+  for (const v of statsData.items ?? []) statsMap[v.id] = v.statistics;
+
+  return searchData.items.map(v => ({
+    videoId: v.id.videoId,
+    title: v.snippet.title,
+    publishedAt: v.snippet.publishedAt,
+    viewCount: statsMap[v.id.videoId]?.viewCount || '0',
+    likeCount: statsMap[v.id.videoId]?.likeCount || '0',
+  }));
+}
+
+// ──────────────────────────────────────────────
+// POST /api/tools/channel-dna
+// ──────────────────────────────────────────────
+router.post("/tools/channel-dna", async (req, res): Promise<void> => {
+  const { channelUrl, screenshots } = req.body as {
+    channelUrl: string;
+    screenshots?: { data: string; mediaType: string }[];
+  };
+
+  if (!channelUrl?.trim()) {
+    res.status(400).json({ error: "channelUrl is required" });
+    return;
+  }
+
+  const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
+  if (!YOUTUBE_API_KEY) {
+    res.status(500).json({ error: "YouTube API key not configured" });
+    return;
+  }
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+
+  const send = (data: object) => res.write(`data: ${JSON.stringify(data)}\n\n`);
+
+  try {
+    send({ type: 'status', message: 'Looking up channel…' });
+    const channel = await fetchChannelData(channelUrl, YOUTUBE_API_KEY);
+    send({ type: 'channel', data: channel });
+
+    send({ type: 'status', message: 'Loading top videos…' });
+    const topVideos = await fetchChannelTopVideos(channel.id, YOUTUBE_API_KEY, 10);
+    send({ type: 'videos', data: topVideos });
+
+    // Fetch transcripts for top 3 videos
+    const transcripts: { title: string; text: string }[] = [];
+    for (let i = 0; i < Math.min(3, topVideos.length); i++) {
+      const v = topVideos[i];
+      send({ type: 'status', message: `Reading transcript ${i + 1}/3: "${v.title.slice(0, 40)}…"` });
+      try {
+        const segments = await fetchYouTubeTranscript(v.videoId);
+        const fullText = segments.map(s => s.text).join(' ');
+        transcripts.push({ title: v.title, text: fullText.slice(0, 3500) });
+      } catch {
+        // transcript unavailable, skip silently
+      }
+    }
+
+    send({ type: 'status', message: 'Analyzing channel DNA with AI…' });
+
+    const videoListText = topVideos.map((v, i) =>
+      `${i + 1}. "${v.title}" — ${Number(v.viewCount).toLocaleString()} views`
+    ).join('\n');
+
+    const transcriptText = transcripts.length > 0
+      ? transcripts.map((t, i) => `\n--- TRANSCRIPT ${i + 1}: "${t.title}" ---\n${t.text}`).join('\n')
+      : '\n(Transcripts unavailable — analyze from titles, description, and any screenshots provided)';
+
+    type ClaudeContent =
+      | { type: 'text'; text: string }
+      | { type: 'image'; source: { type: 'base64'; media_type: string; data: string } };
+
+    const dnaContent: ClaudeContent[] = [
+      {
+        type: 'text',
+        text: `You are a YouTube channel strategist. Analyze this channel's content DNA from its top videos and transcripts.
+
+CHANNEL: ${channel.name}
+SUBSCRIBERS: ${Number(channel.subscribers).toLocaleString()}
+DESCRIPTION: ${channel.description.slice(0, 500)}
+
+TOP VIDEOS (by views):
+${videoListText}
+
+TRANSCRIPTS:
+${transcriptText}
+
+Return ONLY valid JSON:
+{
+  "hookStyle": "Describe their hook style in 1-2 sentences",
+  "tone": "Tone/voice (e.g., authoritative and direct, conversational and warm, comedic and self-deprecating)",
+  "pacing": "Content pacing (e.g., rapid-fire info, slow-burn storytelling, tight fast-cut energy)",
+  "contentStructure": "Their typical video structure",
+  "recurringPhrases": ["phrase 1", "phrase 2", "phrase 3"],
+  "emotionalTriggers": ["trigger 1", "trigger 2", "trigger 3"],
+  "uniquePatterns": ["pattern 1", "pattern 2", "pattern 3"],
+  "audienceRelationship": "How they relate to / speak to their audience",
+  "summary": "2-3 sentence DNA summary a new creator could follow"
+}`,
+      },
+    ];
+
+    if (screenshots?.length) {
+      for (const s of screenshots.slice(0, 4)) {
+        dnaContent.push({
+          type: 'image',
+          source: { type: 'base64', media_type: s.mediaType, data: s.data },
+        });
+      }
+      dnaContent.push({
+        type: 'text',
+        text: 'Also use these channel screenshots to inform the DNA analysis — pay attention to thumbnail style, color palette, facial expressions, text overlay patterns, and visual branding.',
+      });
+    }
+
+    const dnaMsg = await anthropic.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 2048,
+      messages: [{ role: 'user', content: dnaContent }],
+    });
+    const dnaText = dnaMsg.content[0].type === 'text' ? dnaMsg.content[0].text : '{}';
+    const dnaMatch = dnaText.match(/\{[\s\S]*\}/);
+    const dna = dnaMatch ? JSON.parse(dnaMatch[0]) : {};
+    send({ type: 'dna', data: dna });
+
+    // Generate 5 video ideas
+    send({ type: 'status', message: 'Generating video ideas in their style…' });
+    const ideasMsg = await anthropic.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 2048,
+      messages: [{
+        role: 'user',
+        content: `You are a YouTube strategist. Based on this channel's DNA, generate 5 ORIGINAL video ideas for a new creator who wants to use the same style, tone, and approach — but with fresh original content.
+
+CHANNEL DNA:
+Hook Style: ${dna.hookStyle || ''}
+Tone: ${dna.tone || ''}
+Pacing: ${dna.pacing || ''}
+Content Structure: ${dna.contentStructure || ''}
+Emotional Triggers: ${(dna.emotionalTriggers as string[] || []).join(', ')}
+Unique Patterns: ${(dna.uniquePatterns as string[] || []).join(', ')}
+
+TOP TITLES FOR INSPIRATION (do NOT copy or directly reference these):
+${topVideos.slice(0, 5).map(v => `- "${v.title}"`).join('\n')}
+
+Return ONLY a valid JSON array:
+[
+  {
+    "title": "The video title (match the channel's title style)",
+    "angle": "The unique angle that makes this stand out",
+    "hook": "The opening hook line for this video (first 15 seconds, in the channel's exact voice)",
+    "why": "Why this idea works for this channel's audience"
+  }
+]`,
+      }],
+    });
+    const ideasText = ideasMsg.content[0].type === 'text' ? ideasMsg.content[0].text : '[]';
+    const ideasMatch = ideasText.match(/\[[\s\S]*\]/);
+    const ideas = (ideasMatch ? JSON.parse(ideasMatch[0]) : []) as { title: string; angle: string; hook: string; why: string }[];
+    send({ type: 'ideas', data: ideas });
+
+    // Write full script for the top idea (streaming)
+    if (ideas.length > 0) {
+      send({ type: 'status', message: 'Writing your script in their exact style…' });
+      const scriptStream = anthropic.messages.stream({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 4096,
+        system: `You are an elite YouTube scriptwriter. Write in the EXACT style of the analyzed channel:
+- Hook Style: ${dna.hookStyle || ''}
+- Tone: ${dna.tone || ''}
+- Pacing: ${dna.pacing || ''}
+- Content Structure: ${dna.contentStructure || ''}
+- Phrases to echo: ${(dna.recurringPhrases as string[] || []).join(', ')}
+- Emotional triggers to use: ${(dna.emotionalTriggers as string[] || []).join(', ')}
+- Unique patterns to follow: ${(dna.uniquePatterns as string[] || []).join(', ')}
+- Audience relationship: ${dna.audienceRelationship || ''}`,
+        messages: [{
+          role: 'user',
+          content: `Write a complete YouTube script for this idea:
+
+TITLE: ${ideas[0].title}
+ANGLE: ${ideas[0].angle}
+HOOK LINE: ${ideas[0].hook}
+
+Write the FULL script with clear section labels:
+[HOOK] — first 15 seconds
+[PROMISE] — what they'll get
+[OPEN LOOP] — plant a mystery
+[BODY] — main content sections
+[CTA] — closing call to action
+
+Sound EXACTLY like the channel we analyzed. Same rhythm, energy, vocabulary, and personality — but 100% original content.`,
+        }],
+      });
+
+      for await (const event of scriptStream) {
+        if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+          send({ type: 'script_delta', text: event.delta.text });
+        }
+      }
+    }
+
+    send({ type: 'done' });
+    res.end();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Channel DNA analysis failed';
+    req.log.error({ err }, 'Channel DNA failed');
+    send({ type: 'error', message: msg });
+    res.end();
+  }
+});
+
 export default router;
