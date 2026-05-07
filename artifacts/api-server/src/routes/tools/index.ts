@@ -1046,4 +1046,65 @@ Sound EXACTLY like the channel we analyzed. Same rhythm, energy, vocabulary, and
   }
 });
 
+// ─── Script → Video Scenes ───────────────────────────────────────────────────
+router.post('/tools/video-scenes', async (req, res) => {
+  const { script, format } = req.body as { script: string; format?: string };
+  if (!script || script.trim().length < 50) {
+    res.status(400).json({ error: 'Script too short — paste at least a paragraph.' });
+    return;
+  }
+
+  const videoFormat = format === 'short' ? 'TikTok/Shorts (9:16 vertical)' : 'YouTube (16:9 landscape)';
+
+  const systemPrompt = `You are a professional video director and animator. Given a script, break it into animated video scenes.
+
+Return ONLY valid JSON — no markdown, no explanation. The JSON must be an array of scene objects.
+
+Each scene object has exactly these fields:
+- "id": number (1-based)
+- "duration": number (milliseconds, 2000-6000)
+- "text": string (the spoken/displayed text for this scene, SHORT — max 15 words)
+- "subtext": string (optional supporting text, max 10 words, or empty string)
+- "mood": string (one of: "energetic", "dramatic", "calm", "intense", "inspiring", "curious", "dark", "triumphant")
+- "bgColor": string (hex color for scene background gradient start)
+- "accentColor": string (hex color for accent elements)
+- "character": object with:
+  - "action": string (one of: "idle", "talk", "excited", "think", "point", "raise_hands", "walk", "jump", "shrug", "nod")
+  - "position": string (one of: "left", "center", "right")
+- "visualElement": string (one of: "none", "chart_up", "chart_down", "explosion", "lightning", "stars", "money", "brain", "fire", "clock", "checkmark", "question_mark", "arrow_up", "shield", "target")
+- "transition": string (one of: "slide_up", "zoom_in", "fade", "wipe_left", "clip_circle")
+
+Rules:
+- Create 6-20 scenes depending on script length
+- Keep text SHORT — viewers can't read paragraphs
+- Vary moods and colors for visual interest
+- End with a strong closing scene
+- Make character actions match the emotional content`;
+
+  try {
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-5',
+      max_tokens: 4096,
+      system: systemPrompt,
+      messages: [{
+        role: 'user',
+        content: `Format: ${videoFormat}\n\nScript:\n${script.slice(0, 8000)}`,
+      }],
+    });
+
+    const raw = response.content[0].type === 'text' ? response.content[0].text : '';
+    // Strip any accidental markdown fences
+    const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
+    const scenes = JSON.parse(cleaned);
+
+    if (!Array.isArray(scenes)) throw new Error('Expected array of scenes');
+
+    res.json({ scenes });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'Scene generation failed';
+    req.log.error({ err }, 'video-scenes failed');
+    res.status(500).json({ error: msg });
+  }
+});
+
 export default router;

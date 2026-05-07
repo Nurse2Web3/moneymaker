@@ -20,6 +20,7 @@ import NicheAnalyzer from './components/NicheAnalyzer';
 import VideoAnalyzer from './components/VideoAnalyzer';
 import Teleprompter from './components/Teleprompter';
 import ChannelCloner from './components/ChannelCloner';
+import VideoMaker from './components/VideoMaker';
 
 type Page =
   | 'home'
@@ -34,7 +35,8 @@ type Page =
   | 'niche-analyzer'
   | 'video-analyzer'
   | 'teleprompter'
-  | 'channel-cloner';
+  | 'channel-cloner'
+  | 'video-maker';
 
 const TOOL_GROUPS = [
   {
@@ -45,6 +47,7 @@ const TOOL_GROUPS = [
       { id: 'script-improver' as Page, label: 'Script Improver', icon: '✨', desc: 'Rewrite & upgrade existing scripts' },
       { id: 'hook-generator' as Page, label: 'Hook Generator', icon: '🎣', desc: '6 viral hook styles for any topic' },
       { id: 'teleprompter' as Page, label: 'Teleprompter', icon: '🎬', desc: 'Full-screen auto-scroll while you record' },
+      { id: 'video-maker' as Page, label: 'Video Maker', icon: '🎥', desc: 'Turn your script into an animated video' },
     ],
   },
   {
@@ -194,6 +197,7 @@ export default function App() {
         {page === 'tag-generator' && <TagGenerator />}
         {page === 'thumbnail-generator' && <ThumbnailGenerator />}
         {page === 'channel-cloner' && <ChannelCloner />}
+        {page === 'video-maker' && <VideoMaker />}
       </div>
     </div>
   );
