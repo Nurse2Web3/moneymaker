@@ -1056,30 +1056,29 @@ router.post('/tools/video-scenes', async (req, res) => {
 
   const videoFormat = format === 'short' ? 'TikTok/Shorts (9:16 vertical)' : 'YouTube (16:9 landscape)';
 
-  const systemPrompt = `You are a professional video director and animator. Given a script, break it into animated video scenes.
+  const systemPrompt = `You are a professional video editor who creates kinetic typography social media videos. Given a script, break it into punchy animated slides.
 
-Return ONLY valid JSON — no markdown, no explanation. The JSON must be an array of scene objects.
+Return ONLY valid JSON — no markdown fences, no explanation. Return a JSON array of scene objects.
 
-Each scene object has exactly these fields:
+Each scene object has EXACTLY these fields:
 - "id": number (1-based)
-- "duration": number (milliseconds, 2000-6000)
-- "text": string (the spoken/displayed text for this scene, SHORT — max 15 words)
-- "subtext": string (optional supporting text, max 10 words, or empty string)
-- "mood": string (one of: "energetic", "dramatic", "calm", "intense", "inspiring", "curious", "dark", "triumphant")
-- "bgColor": string (hex color for scene background gradient start)
-- "accentColor": string (hex color for accent elements)
-- "character": object with:
-  - "action": string (one of: "idle", "talk", "excited", "think", "point", "raise_hands", "walk", "jump", "shrug", "nod")
-  - "position": string (one of: "left", "center", "right")
-- "visualElement": string (one of: "none", "chart_up", "chart_down", "explosion", "lightning", "stars", "money", "brain", "fire", "clock", "checkmark", "question_mark", "arrow_up", "shield", "target")
-- "transition": string (one of: "slide_up", "zoom_in", "fade", "wipe_left", "clip_circle")
+- "duration": number (milliseconds, 3000-5500 — longer for complex ideas)
+- "headline": string (the main text — SHORT and punchy, max 10 words, ALL CAPS for impact on short videos)
+- "highlightWords": array of strings (1-3 key words from headline to emphasize with color highlight)
+- "subtext": string (supporting context, max 8 words, or "" if none needed)
+- "emoji": string (single relevant emoji that adds emotion, or "" — use real emojis like 🔥💰⚡🧠🎯📈💡🚀✅❌⚠️🎬💎📊🏆)
+- "palette": string (one of: "purple", "blue", "red", "gold", "green", "teal", "pink", "orange", "dark")
+- "animStyle": string (one of: "word-by-word", "all-in", "rise-up")
 
 Rules:
-- Create 6-20 scenes depending on script length
-- Keep text SHORT — viewers can't read paragraphs
-- Vary moods and colors for visual interest
-- End with a strong closing scene
-- Make character actions match the emotional content`;
+- Create 8-18 scenes depending on script length
+- Each scene = ONE idea, ONE message
+- Keep headline SHORT — max 10 words — viewers read in 1-2 seconds  
+- highlightWords must be exact words that appear in headline
+- Choose palette based on emotion: red/orange=danger/urgency, gold=money/success, green=growth/positive, purple=authority/wisdom, blue=trust/calm, teal=insight, pink=bold/trend, dark=serious/premium
+- Vary palettes — do NOT repeat the same palette more than twice in a row
+- animStyle "word-by-word" for dramatic reveals, "all-in" for statements, "rise-up" for powerful declarations
+- End with a strong call-to-action scene`;
 
   try {
     const response = await anthropic.messages.create({
@@ -1093,7 +1092,6 @@ Rules:
     });
 
     const raw = response.content[0].type === 'text' ? response.content[0].text : '';
-    // Strip any accidental markdown fences
     const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
     const scenes = JSON.parse(cleaned);
 

@@ -4,323 +4,268 @@ import { motion, AnimatePresence } from 'framer-motion';
 interface VideoScene {
   id: number;
   duration: number;
-  text: string;
+  headline: string;
+  highlightWords: string[];
   subtext: string;
-  mood: string;
-  bgColor: string;
-  accentColor: string;
-  character: { action: string; position: string };
-  visualElement: string;
-  transition: string;
+  emoji: string;
+  palette: string;
+  animStyle: 'word-by-word' | 'all-in' | 'rise-up';
 }
 
-// ─── SVG Characters ────────────────────────────────────────────────────────────
-function StickFigure({ action, color = '#fff', scale = 1 }: { action: string; color?: string; scale?: number }) {
-  const s = (n: number) => n * scale;
+// ─── Palette definitions ──────────────────────────────────────────────────────
+const PALETTES: Record<string, { bg: string; orb1: string; orb2: string; accent: string; highlightText: string }> = {
+  purple: { bg: 'linear-gradient(145deg,#0d0618 0%,#1e0a3c 50%,#2d1060 100%)', orb1: '#7c3aed', orb2: '#4c1d95', accent: '#a78bfa', highlightText: '#0d0618' },
+  blue:   { bg: 'linear-gradient(145deg,#020917 0%,#0a1f3d 50%,#0f3460 100%)', orb1: '#2563eb', orb2: '#1e3a5f', accent: '#60a5fa', highlightText: '#020917' },
+  red:    { bg: 'linear-gradient(145deg,#0f0202 0%,#3b0a0a 50%,#7f1d1d 100%)', orb1: '#dc2626', orb2: '#991b1b', accent: '#f87171', highlightText: '#0f0202' },
+  gold:   { bg: 'linear-gradient(145deg,#0e0900 0%,#2d1e00 50%,#78350f 100%)', orb1: '#d97706', orb2: '#92400e', accent: '#fbbf24', highlightText: '#0e0900' },
+  green:  { bg: 'linear-gradient(145deg,#010d04 0%,#052e16 50%,#166534 100%)', orb1: '#16a34a', orb2: '#14532d', accent: '#4ade80', highlightText: '#010d04' },
+  teal:   { bg: 'linear-gradient(145deg,#000d0d 0%,#042726 50%,#0f766e 100%)', orb1: '#0d9488', orb2: '#134e4a', accent: '#2dd4bf', highlightText: '#000d0d' },
+  pink:   { bg: 'linear-gradient(145deg,#100010 0%,#3b0a28 50%,#831843 100%)', orb1: '#db2777', orb2: '#9d174d', accent: '#f472b6', highlightText: '#100010' },
+  orange: { bg: 'linear-gradient(145deg,#0f0500 0%,#431407 50%,#9a3412 100%)', orb1: '#ea580c', orb2: '#c2410c', accent: '#fb923c', highlightText: '#0f0500' },
+  dark:   { bg: 'linear-gradient(145deg,#050505 0%,#0f0f0f 50%,#1a1a2e 100%)', orb1: '#6366f1', orb2: '#312e81', accent: '#e2e8f0', highlightText: '#050505' },
+};
 
-  const bodyParts = {
-    head: <circle cx={s(50)} cy={s(18)} r={s(12)} stroke={color} strokeWidth={s(2.5)} fill="none" />,
-    body: <line x1={s(50)} y1={s(30)} x2={s(50)} y2={s(68)} stroke={color} strokeWidth={s(2.5)} strokeLinecap="round" />,
-  };
-
-  const arms: Record<string, JSX.Element> = {
-    idle: <><line x1={s(50)} y1={s(38)} x2={s(30)} y2={s(55)} stroke={color} strokeWidth={s(2.5)} strokeLinecap="round" /><line x1={s(50)} y1={s(38)} x2={s(70)} y2={s(55)} stroke={color} strokeWidth={s(2.5)} strokeLinecap="round" /></>,
-    talk: <><line x1={s(50)} y1={s(38)} x2={s(28)} y2={s(48)} stroke={color} strokeWidth={s(2.5)} strokeLinecap="round" /><line x1={s(50)} y1={s(38)} x2={s(72)} y2={s(45)} stroke={color} strokeWidth={s(2.5)} strokeLinecap="round" /></>,
-    excited: <><line x1={s(50)} y1={s(38)} x2={s(22)} y2={s(26)} stroke={color} strokeWidth={s(2.5)} strokeLinecap="round" /><line x1={s(50)} y1={s(38)} x2={s(78)} y2={s(26)} stroke={color} strokeWidth={s(2.5)} strokeLinecap="round" /></>,
-    raise_hands: <><line x1={s(50)} y1={s(38)} x2={s(20)} y2={s(20)} stroke={color} strokeWidth={s(2.5)} strokeLinecap="round" /><line x1={s(50)} y1={s(38)} x2={s(80)} y2={s(20)} stroke={color} strokeWidth={s(2.5)} strokeLinecap="round" /></>,
-    think: <><line x1={s(50)} y1={s(38)} x2={s(30)} y2={s(52)} stroke={color} strokeWidth={s(2.5)} strokeLinecap="round" /><line x1={s(50)} y1={s(38)} x2={s(65)} y2={s(32)} stroke={color} strokeWidth={s(2.5)} strokeLinecap="round" /></>,
-    point: <><line x1={s(50)} y1={s(38)} x2={s(28)} y2={s(52)} stroke={color} strokeWidth={s(2.5)} strokeLinecap="round" /><line x1={s(50)} y1={s(38)} x2={s(80)} y2={s(32)} stroke={color} strokeWidth={s(2.5)} strokeLinecap="round" /></>,
-    jump: <><line x1={s(50)} y1={s(38)} x2={s(20)} y2={s(28)} stroke={color} strokeWidth={s(2.5)} strokeLinecap="round" /><line x1={s(50)} y1={s(38)} x2={s(80)} y2={s(28)} stroke={color} strokeWidth={s(2.5)} strokeLinecap="round" /></>,
-    shrug: <><line x1={s(50)} y1={s(38)} x2={s(26)} y2={s(36)} stroke={color} strokeWidth={s(2.5)} strokeLinecap="round" /><line x1={s(50)} y1={s(38)} x2={s(74)} y2={s(36)} stroke={color} strokeWidth={s(2.5)} strokeLinecap="round" /></>,
-    nod: <><line x1={s(50)} y1={s(38)} x2={s(30)} y2={s(50)} stroke={color} strokeWidth={s(2.5)} strokeLinecap="round" /><line x1={s(50)} y1={s(38)} x2={s(70)} y2={s(50)} stroke={color} strokeWidth={s(2.5)} strokeLinecap="round" /></>,
-    walk: <><line x1={s(50)} y1={s(38)} x2={s(30)} y2={s(50)} stroke={color} strokeWidth={s(2.5)} strokeLinecap="round" /><line x1={s(50)} y1={s(38)} x2={s(72)} y2={s(45)} stroke={color} strokeWidth={s(2.5)} strokeLinecap="round" /></>,
-  };
-
-  const legs: Record<string, JSX.Element> = {
-    idle: <><line x1={s(50)} y1={s(68)} x2={s(34)} y2={s(92)} stroke={color} strokeWidth={s(2.5)} strokeLinecap="round" /><line x1={s(50)} y1={s(68)} x2={s(66)} y2={s(92)} stroke={color} strokeWidth={s(2.5)} strokeLinecap="round" /></>,
-    jump: <><line x1={s(50)} y1={s(68)} x2={s(30)} y2={s(88)} stroke={color} strokeWidth={s(2.5)} strokeLinecap="round" /><line x1={s(50)} y1={s(68)} x2={s(70)} y2={s(88)} stroke={color} strokeWidth={s(2.5)} strokeLinecap="round" /></>,
-    walk: <><line x1={s(50)} y1={s(68)} x2={s(36)} y2={s(90)} stroke={color} strokeWidth={s(2.5)} strokeLinecap="round" /><line x1={s(50)} y1={s(68)} x2={s(62)} y2={s(92)} stroke={color} strokeWidth={s(2.5)} strokeLinecap="round" /></>,
-    excited: <><line x1={s(50)} y1={s(68)} x2={s(32)} y2={s(90)} stroke={color} strokeWidth={s(2.5)} strokeLinecap="round" /><line x1={s(50)} y1={s(68)} x2={s(68)} y2={s(90)} stroke={color} strokeWidth={s(2.5)} strokeLinecap="round" /></>,
-  };
-
-  const armEl = arms[action] ?? arms.idle;
-  const legEl = legs[action] ?? legs.idle;
-
-  const motionProps: Record<string, object> = {
-    excited: { animate: { y: [0, -8, 0], rotate: [-3, 3, -3] }, transition: { duration: 0.5, repeat: Infinity } },
-    raise_hands: { animate: { y: [0, -4, 0] }, transition: { duration: 0.8, repeat: Infinity } },
-    talk: { animate: { rotate: [-1, 1, -1] }, transition: { duration: 0.6, repeat: Infinity } },
-    jump: { animate: { y: [0, -20, 0] }, transition: { duration: 0.6, repeat: Infinity } },
-    nod: { animate: { rotate: [-2, 2, -2] }, transition: { duration: 0.5, repeat: Infinity } },
-    walk: { animate: { x: [-3, 3, -3] }, transition: { duration: 0.7, repeat: Infinity } },
-    think: { animate: { y: [0, -2, 0] }, transition: { duration: 1.2, repeat: Infinity } },
-  };
-
-  const mp = motionProps[action] ?? {};
-
+// ─── Floating background orbs ─────────────────────────────────────────────────
+function FloatingOrbs({ color1, color2 }: { color1: string; color2: string }) {
   return (
-    <motion.svg width={s(100)} height={s(100)} viewBox="0 0 100 100" {...mp}>
-      {bodyParts.head}
-      {bodyParts.body}
-      {armEl}
-      {legEl}
-    </motion.svg>
+    <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+      <motion.div style={{
+        position: 'absolute', width: 500, height: 500, borderRadius: '50%',
+        background: `radial-gradient(circle, ${color1}28, transparent 70%)`,
+        top: '-20%', left: '-15%', filter: 'blur(60px)',
+      }} animate={{ scale: [1, 1.15, 1], x: [0, 30, 0], y: [0, -20, 0] }}
+        transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }} />
+      <motion.div style={{
+        position: 'absolute', width: 400, height: 400, borderRadius: '50%',
+        background: `radial-gradient(circle, ${color2}20, transparent 70%)`,
+        bottom: '-15%', right: '-10%', filter: 'blur(50px)',
+      }} animate={{ scale: [1, 1.2, 1], x: [0, -20, 0] }}
+        transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut', delay: 1 }} />
+      <motion.div style={{
+        position: 'absolute', width: 200, height: 200, borderRadius: '50%',
+        background: `radial-gradient(circle, ${color1}15, transparent 70%)`,
+        top: '40%', right: '15%', filter: 'blur(40px)',
+      }} animate={{ scale: [1, 1.3, 1], y: [0, 20, 0] }}
+        transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut', delay: 2 }} />
+    </div>
   );
 }
 
-// ─── Visual Elements ───────────────────────────────────────────────────────────
-function VisualElement({ type, color }: { type: string; color: string }) {
-  if (type === 'none') return null;
-
-  const els: Record<string, JSX.Element> = {
-    chart_up: (
-      <svg width="80" height="60" viewBox="0 0 80 60">
-        <motion.polyline points="0,50 20,40 40,25 60,10 80,5" fill="none" stroke={color} strokeWidth="3" strokeLinecap="round"
-          initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.2, ease: 'easeOut' }} />
-        <motion.circle cx="80" cy="5" r="4" fill={color} initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 1.1 }} />
-      </svg>
-    ),
-    chart_down: (
-      <svg width="80" height="60" viewBox="0 0 80 60">
-        <motion.polyline points="0,10 20,20 40,35 60,48 80,55" fill="none" stroke="#ef4444" strokeWidth="3" strokeLinecap="round"
-          initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.2, ease: 'easeOut' }} />
-      </svg>
-    ),
-    explosion: (
-      <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: [0, 1.4, 1], opacity: [0, 1, 1] }} transition={{ duration: 0.5 }}>
-        <svg width="70" height="70" viewBox="0 0 70 70">
-          {[0, 45, 90, 135, 180, 225, 270, 315].map((angle, i) => (
-            <motion.line key={i} x1="35" y1="35"
-              x2={35 + 28 * Math.cos((angle * Math.PI) / 180)}
-              y2={35 + 28 * Math.sin((angle * Math.PI) / 180)}
-              stroke={color} strokeWidth="3" strokeLinecap="round"
-              initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ delay: i * 0.05 }} />
-          ))}
-          <circle cx="35" cy="35" r="8" fill={color} />
-        </svg>
-      </motion.div>
-    ),
-    lightning: (
-      <motion.svg width="50" height="80" viewBox="0 0 50 80" initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'spring', stiffness: 400 }}>
-        <motion.polyline points="30,0 15,40 28,40 10,80" fill="none" stroke={color} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"
-          initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.5 }} />
-      </motion.svg>
-    ),
-    stars: (
-      <div style={{ position: 'relative', width: 80, height: 60 }}>
-        {[{ x: 10, y: 30, s: 1.2 }, { x: 40, y: 10, s: 1.6 }, { x: 70, y: 35, s: 1 }, { x: 25, y: 55, s: 0.8 }, { x: 60, y: 55, s: 1.1 }].map((star, i) => (
-          <motion.div key={i} style={{ position: 'absolute', left: star.x, top: star.y, fontSize: 18 * star.s, color }}
-            initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: i * 0.12, type: 'spring' }}>★</motion.div>
-        ))}
-      </div>
-    ),
-    money: (
-      <motion.div style={{ fontSize: 48, filter: 'drop-shadow(0 0 12px rgba(34,197,94,0.6))' }}
-        animate={{ y: [0, -8, 0], rotate: [-5, 5, -5] }} transition={{ duration: 1.5, repeat: Infinity }}>
-        💰
-      </motion.div>
-    ),
-    brain: (
-      <motion.div style={{ fontSize: 48 }}
-        animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 1.2, repeat: Infinity }}>
-        🧠
-      </motion.div>
-    ),
-    fire: (
-      <motion.div style={{ fontSize: 48 }}
-        animate={{ scale: [1, 1.15, 1], rotate: [-3, 3, -3] }} transition={{ duration: 0.6, repeat: Infinity }}>
-        🔥
-      </motion.div>
-    ),
-    clock: (
-      <svg width="60" height="60" viewBox="0 0 60 60">
-        <circle cx="30" cy="30" r="26" stroke={color} strokeWidth="2.5" fill="none" />
-        <motion.line x1="30" y1="30" x2="30" y2="10" stroke={color} strokeWidth="2.5" strokeLinecap="round"
-          animate={{ rotate: 360 }} transition={{ duration: 5, repeat: Infinity, ease: 'linear' }} style={{ originX: '30px', originY: '30px' }} />
-        <motion.line x1="30" y1="30" x2="44" y2="30" stroke={color} strokeWidth="2" strokeLinecap="round"
-          animate={{ rotate: 360 }} transition={{ duration: 60, repeat: Infinity, ease: 'linear' }} style={{ originX: '30px', originY: '30px' }} />
-      </svg>
-    ),
-    checkmark: (
-      <svg width="60" height="60" viewBox="0 0 60 60">
-        <circle cx="30" cy="30" r="26" stroke={color} strokeWidth="2.5" fill="none" />
-        <motion.polyline points="16,30 26,42 46,18" fill="none" stroke={color} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"
-          initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.6, delay: 0.2 }} />
-      </svg>
-    ),
-    question_mark: (
-      <motion.div style={{ fontSize: 64, fontWeight: 900, color, lineHeight: 1 }}
-        animate={{ scale: [1, 1.08, 1] }} transition={{ duration: 1.5, repeat: Infinity }}>?</motion.div>
-    ),
-    arrow_up: (
-      <svg width="50" height="70" viewBox="0 0 50 70">
-        <motion.path d="M25,5 L5,30 L18,30 L18,65 L32,65 L32,30 L45,30 Z" fill={color}
-          initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ type: 'spring', stiffness: 300 }} />
-      </svg>
-    ),
-    shield: (
-      <svg width="60" height="70" viewBox="0 0 60 70">
-        <motion.path d="M30,2 L55,12 L55,35 C55,50 42,62 30,68 C18,62 5,50 5,35 L5,12 Z" fill="none" stroke={color} strokeWidth="2.5"
-          initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.8 }} />
-      </svg>
-    ),
-    target: (
-      <svg width="70" height="70" viewBox="0 0 70 70">
-        {[30, 20, 10].map((r, i) => (
-          <motion.circle key={i} cx="35" cy="35" r={r} fill="none" stroke={color} strokeWidth="2"
-            initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: i * 0.15, type: 'spring' }} />
-        ))}
-        <motion.circle cx="35" cy="35" r="5" fill={color} initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.45, type: 'spring' }} />
-      </svg>
-    ),
+// ─── Animated word ────────────────────────────────────────────────────────────
+function Word({ word, isHighlighted, accentColor, highlightText, isVisible, delay, animStyle }: {
+  word: string; isHighlighted: boolean; accentColor: string; highlightText: string;
+  isVisible: boolean; delay: number; animStyle: string;
+}) {
+  const variants = {
+    'word-by-word': {
+      hidden: { opacity: 0, y: 28, filter: 'blur(4px)' },
+      visible: { opacity: 1, y: 0, filter: 'blur(0px)' },
+    },
+    'all-in': {
+      hidden: { opacity: 0, scale: 0.85 },
+      visible: { opacity: 1, scale: 1 },
+    },
+    'rise-up': {
+      hidden: { opacity: 0, y: 50, scale: 0.9 },
+      visible: { opacity: 1, y: 0, scale: 1 },
+    },
   };
 
-  return els[type] ?? null;
+  const v = variants[animStyle as keyof typeof variants] ?? variants['word-by-word'];
+
+  return (
+    <motion.span
+      style={{
+        display: 'inline-block',
+        color: isHighlighted ? highlightText : '#ffffff',
+        background: isHighlighted ? accentColor : 'transparent',
+        borderRadius: isHighlighted ? 6 : 0,
+        padding: isHighlighted ? '2px 10px 4px' : '0',
+        margin: '0 3px',
+        fontWeight: 900,
+        letterSpacing: '-0.025em',
+        textShadow: isHighlighted ? 'none' : '0 2px 20px rgba(0,0,0,0.5)',
+      }}
+      initial="hidden"
+      animate={isVisible ? 'visible' : 'hidden'}
+      variants={v}
+      transition={{ duration: animStyle === 'rise-up' ? 0.45 : 0.22, ease: [0.16, 1, 0.3, 1], delay }}
+    >
+      {word}
+    </motion.span>
+  );
 }
 
-// ─── Scene Renderer ────────────────────────────────────────────────────────────
+// ─── Scene View ────────────────────────────────────────────────────────────────
 function SceneView({ scene, isShort }: { scene: VideoScene; isShort: boolean }) {
-  const [phase, setPhase] = useState(0);
+  const pal = PALETTES[scene.palette] ?? PALETTES.dark;
+  const words = scene.headline.split(' ');
+  const [visibleCount, setVisibleCount] = useState(0);
+  const [showSub, setShowSub] = useState(false);
+  const [showEmoji, setShowEmoji] = useState(false);
 
   useEffect(() => {
-    setPhase(0);
-    const t1 = setTimeout(() => setPhase(1), 150);
-    const t2 = setTimeout(() => setPhase(2), 600);
-    const t3 = setTimeout(() => setPhase(3), 1200);
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+    setVisibleCount(0);
+    setShowSub(false);
+    setShowEmoji(false);
+
+    if (scene.animStyle === 'word-by-word') {
+      let i = 0;
+      const step = () => {
+        i++;
+        setVisibleCount(i);
+        if (i < words.length) {
+          setTimeout(step, 160);
+        } else {
+          setTimeout(() => { setShowSub(true); setShowEmoji(true); }, 250);
+        }
+      };
+      const t = setTimeout(step, 200);
+      return () => clearTimeout(t);
+    } else {
+      const t1 = setTimeout(() => { setVisibleCount(words.length); setShowEmoji(true); }, 150);
+      const t2 = setTimeout(() => setShowSub(true), scene.animStyle === 'rise-up' ? 700 : 500);
+      return () => { clearTimeout(t1); clearTimeout(t2); };
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scene.id]);
 
-  const charPosition = scene.character.position === 'left' ? '8%' : scene.character.position === 'right' ? 'auto' : '50%';
-  const charRight = scene.character.position === 'right' ? '8%' : 'auto';
-  const charTranslateX = scene.character.position === 'center' ? '-50%' : '0';
+  const fontSize = isShort
+    ? `clamp(32px, ${Math.max(5, 9 - words.length * 0.3)}vw, 64px)`
+    : `clamp(26px, ${Math.max(3, 5 - words.length * 0.15)}vw, 56px)`;
 
-  const moodGradients: Record<string, string> = {
-    energetic: `linear-gradient(135deg, ${scene.bgColor}dd 0%, #1a0a2e 100%)`,
-    dramatic: `linear-gradient(160deg, #0a0a0a 0%, ${scene.bgColor}88 100%)`,
-    calm: `linear-gradient(120deg, #0d1b2a 0%, ${scene.bgColor}99 100%)`,
-    intense: `linear-gradient(145deg, ${scene.bgColor}cc 0%, #1a0505 100%)`,
-    inspiring: `linear-gradient(130deg, #0a1628 0%, ${scene.bgColor}bb 100%)`,
-    curious: `linear-gradient(150deg, #0f1117 0%, ${scene.bgColor}aa 100%)`,
-    dark: `linear-gradient(135deg, #050505 0%, ${scene.bgColor}66 100%)`,
-    triumphant: `linear-gradient(140deg, ${scene.bgColor}bb 0%, #1a1a0a 100%)`,
+  const transitionVariants: Record<string, { initial: object; animate: object; exit: object }> = {
+    'word-by-word': { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } },
+    'all-in':       { initial: { opacity: 0, scale: 0.96 }, animate: { opacity: 1, scale: 1 }, exit: { opacity: 0, scale: 1.02 } },
+    'rise-up':      { initial: { y: '6%', opacity: 0 }, animate: { y: 0, opacity: 1 }, exit: { y: '-6%', opacity: 0 } },
   };
-
-  const transitionVariants: Record<string, object> = {
-    slide_up: { initial: { y: '100%', opacity: 0 }, animate: { y: 0, opacity: 1 }, exit: { y: '-100%', opacity: 0 } },
-    zoom_in: { initial: { scale: 0.7, opacity: 0 }, animate: { scale: 1, opacity: 1 }, exit: { scale: 1.3, opacity: 0 } },
-    fade: { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } },
-    wipe_left: { initial: { x: '100%', opacity: 0 }, animate: { x: 0, opacity: 1 }, exit: { x: '-100%', opacity: 0 } },
-    clip_circle: { initial: { clipPath: 'circle(0% at 50% 50%)', opacity: 0 }, animate: { clipPath: 'circle(100% at 50% 50%)', opacity: 1 }, exit: { clipPath: 'circle(0% at 50% 50%)', opacity: 0 } },
-  };
-
-  const tv = transitionVariants[scene.transition] ?? transitionVariants.fade;
-
-  const charScale = isShort ? 2.2 : 1.8;
+  const tv = transitionVariants[scene.animStyle] ?? transitionVariants['all-in'];
 
   return (
     <motion.div
       key={scene.id}
-      style={{ position: 'absolute', inset: 0, background: moodGradients[scene.mood] ?? moodGradients.calm, overflow: 'hidden' }}
-      initial={tv.initial as object}
-      animate={tv.animate as object}
-      exit={tv.exit as object}
-      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      style={{ position: 'absolute', inset: 0, background: pal.bg, overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}
+      initial={tv.initial}
+      animate={tv.animate}
+      exit={tv.exit}
+      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
     >
-      {/* Floating background orbs */}
-      <motion.div style={{
-        position: 'absolute', width: 300, height: 300, borderRadius: '50%',
-        background: `radial-gradient(circle, ${scene.accentColor}22, transparent)`,
-        top: '-10%', right: '-5%', filter: 'blur(40px)',
-      }} animate={{ scale: [1, 1.2, 1], x: [0, 20, 0] }} transition={{ duration: 6, repeat: Infinity }} />
-      <motion.div style={{
-        position: 'absolute', width: 200, height: 200, borderRadius: '50%',
-        background: `radial-gradient(circle, ${scene.bgColor}33, transparent)`,
-        bottom: '5%', left: '5%', filter: 'blur(30px)',
-      }} animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 8, repeat: Infinity, delay: 1 }} />
+      <FloatingOrbs color1={pal.orb1} color2={pal.orb2} />
 
-      {/* Accent line */}
-      <motion.div style={{
-        position: 'absolute', top: isShort ? '12%' : '15%', left: isShort ? '6%' : '8%',
-        height: 3, background: scene.accentColor, borderRadius: 2,
-      }}
-        initial={{ width: 0 }} animate={{ width: phase >= 1 ? (isShort ? '88%' : '84%') : 0 }}
-        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }} />
+      {/* Subtle grain texture via SVG filter */}
+      <svg style={{ position: 'absolute', width: 0, height: 0 }}>
+        <filter id={`grain-${scene.id}`}>
+          <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch" />
+          <feColorMatrix type="saturate" values="0" />
+          <feBlend in="SourceGraphic" mode="multiply" />
+        </filter>
+      </svg>
 
-      {/* Character */}
-      <motion.div style={{
-        position: 'absolute', bottom: isShort ? '12%' : '10%',
-        left: charPosition, right: charRight,
-        transform: `translateX(${charTranslateX})`,
-        opacity: phase >= 1 ? 1 : 0,
-        transition: 'opacity 0.3s',
-      }}>
-        <StickFigure action={scene.character.action} color={scene.accentColor} scale={charScale} />
-      </motion.div>
-
-      {/* Visual element */}
-      {scene.visualElement !== 'none' && phase >= 2 && (
-        <motion.div style={{
-          position: 'absolute',
-          top: '20%', right: isShort ? '6%' : '8%',
-        }} initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'spring', stiffness: 300 }}>
-          <VisualElement type={scene.visualElement} color={scene.accentColor} />
-        </motion.div>
-      )}
-
-      {/* Main text */}
+      {/* Content container */}
       <div style={{
-        position: 'absolute',
-        top: '50%', transform: 'translateY(-50%)',
-        left: isShort ? '6%' : '8%',
-        right: isShort ? '6%' : '8%',
-        textAlign: scene.character.position === 'left' ? 'right' : scene.character.position === 'right' ? 'left' : 'center',
+        position: 'relative', zIndex: 10,
+        width: '100%', padding: isShort ? '0 9%' : '0 10%',
+        textAlign: 'center',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: isShort ? 20 : 16,
       }}>
-        <motion.h2 style={{
-          fontSize: isShort ? 'clamp(28px, 7vw, 52px)' : 'clamp(24px, 3.5vw, 52px)',
-          fontWeight: 900, color: '#fff', lineHeight: 1.15,
-          fontFamily: "'Inter', sans-serif",
-          textShadow: `0 0 40px ${scene.accentColor}66`,
-          letterSpacing: '-0.02em',
-        }}
-          initial={{ opacity: 0, y: 30, filter: 'blur(10px)' }}
-          animate={phase >= 2 ? { opacity: 1, y: 0, filter: 'blur(0px)' } : { opacity: 0, y: 30, filter: 'blur(10px)' }}
-          transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
-        >
-          {scene.text}
-        </motion.h2>
+        {/* Emoji */}
+        {scene.emoji && (
+          <AnimatePresence>
+            {showEmoji && (
+              <motion.div
+                style={{ fontSize: isShort ? 64 : 52, lineHeight: 1, filter: 'drop-shadow(0 4px 16px rgba(0,0,0,0.4))' }}
+                initial={{ scale: 0, rotate: -15, opacity: 0 }}
+                animate={{ scale: 1, rotate: 0, opacity: 1 }}
+                exit={{ scale: 0, opacity: 0 }}
+                transition={{ type: 'spring', stiffness: 500, damping: 18 }}
+              >
+                {scene.emoji}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        )}
 
+        {/* Headline words */}
+        <div style={{ fontSize, lineHeight: 1.15, fontFamily: "'Inter', system-ui, sans-serif" }}>
+          {words.map((w, i) => {
+            const clean = w.replace(/[^a-zA-Z0-9%$]/g, '').toLowerCase();
+            const isHl = scene.highlightWords.some(hw => hw.toLowerCase().replace(/[^a-zA-Z0-9%$]/g, '') === clean);
+            const wordDelay = scene.animStyle === 'word-by-word' ? 0 : i * 0.06;
+            return (
+              <Word
+                key={i}
+                word={w}
+                isHighlighted={isHl}
+                accentColor={pal.accent}
+                highlightText={pal.highlightText}
+                isVisible={i < visibleCount}
+                delay={wordDelay}
+                animStyle={scene.animStyle}
+              />
+            );
+          })}
+        </div>
+
+        {/* Subtext */}
         {scene.subtext && (
-          <motion.p style={{
-            fontSize: isShort ? 'clamp(14px, 3.5vw, 22px)' : 'clamp(13px, 1.6vw, 22px)',
-            color: 'rgba(255,255,255,0.65)', marginTop: 12, lineHeight: 1.5,
-            fontFamily: "'Inter', sans-serif",
-          }}
-            initial={{ opacity: 0, y: 15 }}
-            animate={phase >= 3 ? { opacity: 1, y: 0 } : { opacity: 0, y: 15 }}
-            transition={{ duration: 0.4 }}
-          >
-            {scene.subtext}
-          </motion.p>
+          <AnimatePresence>
+            {showSub && (
+              <motion.p
+                style={{
+                  fontSize: isShort ? 'clamp(14px, 3.5vw, 20px)' : 'clamp(13px, 1.5vw, 18px)',
+                  color: 'rgba(255,255,255,0.55)',
+                  fontFamily: "'Inter', system-ui, sans-serif",
+                  fontWeight: 500,
+                  letterSpacing: '0.01em',
+                  lineHeight: 1.5,
+                  maxWidth: '80%',
+                }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.4 }}
+              >
+                {scene.subtext}
+              </motion.p>
+            )}
+          </AnimatePresence>
         )}
       </div>
 
-      {/* Scene number badge */}
+      {/* Accent bottom bar — sweeps across, acts as scene timer */}
+      <motion.div style={{
+        position: 'absolute', bottom: 0, left: 0, height: 3,
+        background: `linear-gradient(90deg, ${pal.accent}aa, ${pal.accent})`,
+        borderRadius: '0 2px 2px 0',
+      }}
+        initial={{ width: '0%' }}
+        animate={{ width: '100%' }}
+        transition={{ duration: scene.duration / 1000, ease: 'linear' }}
+      />
+
+      {/* Palette accent dot top-left */}
       <div style={{
-        position: 'absolute', bottom: isShort ? '5%' : '4%', right: isShort ? '6%' : '8%',
-        fontSize: 11, color: 'rgba(255,255,255,0.3)', fontFamily: 'monospace',
-      }}>
-        {scene.id}/{scene.id}
-      </div>
+        position: 'absolute', top: 14, left: 16,
+        width: 8, height: 8, borderRadius: '50%',
+        background: pal.accent, boxShadow: `0 0 10px ${pal.accent}88`,
+      }} />
     </motion.div>
   );
 }
 
-// ─── Progress Bar ──────────────────────────────────────────────────────────────
-function SceneProgressBar({ scenes, currentIdx, accentColor }: { scenes: VideoScene[]; currentIdx: number; accentColor: string }) {
+// ─── Stories-style progress bar ───────────────────────────────────────────────
+function StoriesProgress({ total, current, accentColor }: { total: number; current: number; accentColor: string }) {
   return (
-    <div style={{ display: 'flex', gap: 4, padding: '0 4px' }}>
-      {scenes.map((_, i) => (
-        <div key={i} style={{ flex: 1, height: 3, borderRadius: 2, background: i <= currentIdx ? accentColor : 'rgba(255,255,255,0.15)', transition: 'background 0.3s' }} />
+    <div style={{ display: 'flex', gap: 4, padding: '0 2px' }}>
+      {Array.from({ length: total }).map((_, i) => (
+        <div key={i} style={{ flex: 1, height: 3, borderRadius: 2, background: 'rgba(255,255,255,0.2)', overflow: 'hidden' }}>
+          <div style={{
+            height: '100%', borderRadius: 2,
+            background: i < current ? accentColor : i === current ? accentColor : 'transparent',
+            width: i < current ? '100%' : i === current ? '100%' : '0%',
+            transition: i < current ? 'none' : 'none',
+          }} />
+        </div>
       ))}
     </div>
   );
@@ -329,7 +274,7 @@ function SceneProgressBar({ scenes, currentIdx, accentColor }: { scenes: VideoSc
 // ─── Main Component ────────────────────────────────────────────────────────────
 export default function VideoMaker() {
   const [script, setScript] = useState('');
-  const [format, setFormat] = useState<'long' | 'short'>('long');
+  const [format, setFormat] = useState<'long' | 'short'>('short');
   const [scenes, setScenes] = useState<VideoScene[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -346,7 +291,6 @@ export default function VideoMaker() {
 
   const isShort = format === 'short';
 
-  // ── Generate scenes from AI ──
   async function generate() {
     if (!script.trim()) return;
     setLoading(true);
@@ -354,7 +298,6 @@ export default function VideoMaker() {
     setScenes([]);
     setCurrentScene(0);
     setPlaying(false);
-
     try {
       const res = await fetch('/api/tools/video-scenes', {
         method: 'POST',
@@ -373,15 +316,10 @@ export default function VideoMaker() {
     }
   }
 
-  // ── Playback ──
-  const advanceScene = useCallback((idx: number, sceneList: VideoScene[]) => {
-    if (idx >= sceneList.length) {
-      setPlaying(false);
-      setCurrentScene(0);
-      return;
-    }
+  const advanceScene = useCallback((idx: number, list: VideoScene[]) => {
+    if (idx >= list.length) { setPlaying(false); setCurrentScene(0); return; }
     setCurrentScene(idx);
-    timerRef.current = setTimeout(() => advanceScene(idx + 1, sceneList), sceneList[idx].duration);
+    timerRef.current = setTimeout(() => advanceScene(idx + 1, list), list[idx].duration);
   }, []);
 
   function togglePlay() {
@@ -394,49 +332,32 @@ export default function VideoMaker() {
     }
   }
 
-  useEffect(() => {
-    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  }, []);
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
+  useEffect(() => { if (!playing && timerRef.current) clearTimeout(timerRef.current); }, [playing]);
 
-  // Stop playback timer when not playing
-  useEffect(() => {
-    if (!playing && timerRef.current) clearTimeout(timerRef.current);
-  }, [playing]);
-
-  // ── Recording (WebM via canvas capture) ──
   async function startRecording() {
     if (!videoRef.current) return;
     chunksRef.current = [];
     setRecordedChunks([]);
     setRecording(true);
-
     try {
-      const stream = (videoRef.current as HTMLElement & { captureStream?: () => MediaStream }).captureStream?.();
+      const el = videoRef.current as HTMLElement & { captureStream?: () => MediaStream };
+      const stream = el.captureStream?.();
       if (!stream) { alert('Screen capture not supported in this browser.'); setRecording(false); return; }
-
       const mr = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' });
       mediaRecorderRef.current = mr;
       mr.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data); };
-      mr.onstop = () => {
-        setRecordedChunks([...chunksRef.current]);
-        setRecording(false);
-      };
+      mr.onstop = () => { setRecordedChunks([...chunksRef.current]); setRecording(false); };
       mr.start(100);
-
-      // Auto-play through all scenes while recording
       setPlaying(true);
       setCurrentScene(0);
-      let idx = 0;
-      const playAndRecord = (i: number) => {
+      const playThrough = (i: number) => {
         if (i >= scenes.length) { mr.stop(); setPlaying(false); return; }
         setCurrentScene(i);
-        timerRef.current = setTimeout(() => playAndRecord(i + 1), scenes[i].duration);
+        timerRef.current = setTimeout(() => playThrough(i + 1), scenes[i].duration);
       };
-      playAndRecord(idx);
-      void idx;
-    } catch {
-      setRecording(false);
-    }
+      playThrough(0);
+    } catch { setRecording(false); }
   }
 
   function downloadRecording() {
@@ -444,50 +365,52 @@ export default function VideoMaker() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `moneymaker-video-${format}.webm`;
+    a.download = `moneymaker-${format}.webm`;
     a.click();
     URL.revokeObjectURL(url);
   }
 
-  const totalDuration = scenes.reduce((s, sc) => s + sc.duration, 0);
-  const totalSec = Math.round(totalDuration / 1000);
+  const totalSec = Math.round(scenes.reduce((s, sc) => s + sc.duration, 0) / 1000);
+  const currentPal = PALETTES[scenes[currentScene]?.palette] ?? PALETTES.dark;
 
-  // ── Input step ──
+  // ── Input step ──────────────────────────────────────────────────────────────
   if (step === 'input') {
     return (
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '40px 24px' }}>
         <div style={{ marginBottom: 32 }}>
-          <h1 style={{ fontSize: 32, fontWeight: 800, color: '#fff', marginBottom: 8 }}>🎬 Script → Video</h1>
-          <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 16 }}>Paste your script and AI will turn it into an animated video — kinetic text, animated characters, scene transitions.</p>
+          <h1 style={{ fontSize: 30, fontWeight: 800, color: '#fff', marginBottom: 8 }}>🎬 Script → Video</h1>
+          <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 15, lineHeight: 1.6 }}>
+            Paste your script and AI breaks it into punchy kinetic text slides — bold words, animated reveals, professional motion graphics.
+          </p>
         </div>
 
-        {/* Format selector */}
         <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
-          {[
-            { id: 'long', label: '▶ YouTube 16:9', desc: 'Landscape — up to 30 min' },
-            { id: 'short', label: '↕ TikTok / Shorts 9:16', desc: 'Vertical — any length' },
-          ].map(f => (
-            <button key={f.id} onClick={() => setFormat(f.id as 'long' | 'short')} style={{
-              flex: 1, padding: '14px 16px', borderRadius: 10, cursor: 'pointer',
-              background: format === f.id ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.04)',
-              border: `1px solid ${format === f.id ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.08)'}`,
-              textAlign: 'left',
+          {([
+            { id: 'short', label: '9:16 — TikTok / Shorts', icon: '📱', desc: 'Vertical, optimized for Shorts & Reels' },
+            { id: 'long',  label: '16:9 — YouTube',        icon: '🖥️', desc: 'Landscape, wide-screen YouTube format' },
+          ] as const).map(f => (
+            <button key={f.id} onClick={() => setFormat(f.id)} style={{
+              flex: 1, padding: '14px 16px', borderRadius: 10, cursor: 'pointer', textAlign: 'left',
+              background: format === f.id ? 'rgba(167,139,250,0.12)' : 'rgba(255,255,255,0.04)',
+              border: `1px solid ${format === f.id ? 'rgba(167,139,250,0.4)' : 'rgba(255,255,255,0.1)'}`,
             }}>
-              <div style={{ fontSize: 15, fontWeight: 600, color: format === f.id ? '#fff' : 'rgba(255,255,255,0.6)', marginBottom: 3 }}>{f.label}</div>
-              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>{f.desc}</div>
+              <div style={{ fontSize: 20, marginBottom: 4 }}>{f.icon}</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: format === f.id ? '#a78bfa' : 'rgba(255,255,255,0.8)', marginBottom: 2 }}>{f.label}</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>{f.desc}</div>
             </button>
           ))}
         </div>
 
-        {/* Script textarea */}
         <div style={{ marginBottom: 20 }}>
-          <label style={{ display: 'block', fontSize: 13, color: 'rgba(255,255,255,0.45)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Your Script</label>
+          <label style={{ display: 'block', fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+            Your Script
+          </label>
           <textarea
             value={script}
             onChange={e => setScript(e.target.value)}
-            placeholder="Paste your script here — from the Script Writer, Script Improver, or write your own. The AI will break it into cinematic scenes with animated characters and kinetic text..."
+            placeholder="Paste your script here — from the Script Writer, Script Improver, or your own. AI will pull the key messages and animate them into punchy slides with highlighted words, emoji, and smooth transitions."
             style={{
-              width: '100%', minHeight: 280, padding: '16px', borderRadius: 10,
+              width: '100%', minHeight: 280, padding: 16, borderRadius: 10, boxSizing: 'border-box',
               background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)',
               color: '#fff', fontSize: 15, lineHeight: 1.7, resize: 'vertical',
               fontFamily: 'inherit', outline: 'none',
@@ -495,7 +418,7 @@ export default function VideoMaker() {
           />
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
             <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>{script.trim().split(/\s+/).filter(Boolean).length} words</span>
-            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>Max 8,000 words per video</span>
+            <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>Max 8,000 words</span>
           </div>
         </div>
 
@@ -506,127 +429,154 @@ export default function VideoMaker() {
         )}
 
         <button onClick={generate} disabled={loading || script.trim().length < 50} style={{
-          width: '100%', padding: '15px', borderRadius: 10, fontSize: 16, fontWeight: 700,
-          background: loading || script.trim().length < 50 ? 'rgba(255,255,255,0.1)' : '#fff',
+          width: '100%', padding: 15, borderRadius: 10, fontSize: 15, fontWeight: 700,
+          background: loading || script.trim().length < 50 ? 'rgba(255,255,255,0.08)' : '#fff',
           color: loading || script.trim().length < 50 ? 'rgba(255,255,255,0.3)' : '#000',
           border: 'none', cursor: loading || script.trim().length < 50 ? 'not-allowed' : 'pointer',
-          transition: 'all 0.15s',
         }}>
-          {loading ? 'AI is building your video scenes…' : '✨ Generate Video'}
+          {loading ? '✨ Building your video slides…' : '✨ Generate Video'}
         </button>
 
         {loading && (
-          <div style={{ marginTop: 20, textAlign: 'center', color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>
-            Analyzing script and crafting cinematic scenes…
+          <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {['Analyzing script', 'Writing slide copy', 'Choosing palettes', 'Setting animations'].map((s, i) => (
+                <motion.div key={s} style={{ flex: 1, padding: '8px 4px', borderRadius: 8, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', textAlign: 'center', fontSize: 11, color: 'rgba(255,255,255,0.35)' }}
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.3 }}>
+                  {s}
+                </motion.div>
+              ))}
+            </div>
           </div>
         )}
       </div>
     );
   }
 
-  // ── Preview step ──
-  const previewW = isShort ? 360 : 640;
-  const previewH = isShort ? 640 : 360;
+  // ── Preview step ────────────────────────────────────────────────────────────
+  const previewW = isShort ? 340 : 640;
+  const previewH = isShort ? 606 : 360;
   const scene = scenes[currentScene];
 
   return (
-    <div style={{ padding: '24px', maxWidth: 900, margin: '0 auto' }}>
+    <div style={{ padding: '24px', maxWidth: 960, margin: '0 auto' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
         <div>
-          <h1 style={{ fontSize: 26, fontWeight: 800, color: '#fff', marginBottom: 4 }}>🎬 Video Preview</h1>
-          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>
-            {scenes.length} scenes · {totalSec < 60 ? `${totalSec}s` : `${Math.floor(totalSec / 60)}m ${totalSec % 60}s`} total · {format === 'short' ? '9:16 Vertical' : '16:9 Landscape'}
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: '#fff', marginBottom: 4 }}>Video Preview</h1>
+          <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 13 }}>
+            {scenes.length} slides · {totalSec < 60 ? `${totalSec}s` : `${Math.floor(totalSec / 60)}m ${totalSec % 60}s`} · {isShort ? '9:16 Vertical' : '16:9 Landscape'}
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 10 }}>
+        <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={() => { setStep('input'); setPlaying(false); if (timerRef.current) clearTimeout(timerRef.current); }} style={{
-            padding: '8px 16px', borderRadius: 8, background: 'rgba(255,255,255,0.07)',
-            border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.7)', fontSize: 14, cursor: 'pointer',
+            padding: '7px 14px', borderRadius: 8, background: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.65)', fontSize: 13, cursor: 'pointer',
           }}>← Edit Script</button>
           {recordedChunks.length > 0 && (
             <button onClick={downloadRecording} style={{
-              padding: '8px 16px', borderRadius: 8, background: '#22c55e',
-              border: 'none', color: '#000', fontSize: 14, fontWeight: 700, cursor: 'pointer',
-            }}>⬇ Download WebM</button>
+              padding: '7px 14px', borderRadius: 8, background: '#22c55e',
+              border: 'none', color: '#000', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+            }}>⬇ Download .webm</button>
           )}
           <button onClick={startRecording} disabled={recording} style={{
-            padding: '8px 16px', borderRadius: 8,
-            background: recording ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.1)',
-            border: `1px solid ${recording ? 'rgba(239,68,68,0.4)' : 'rgba(255,255,255,0.15)'}`,
-            color: recording ? '#fca5a5' : '#fff', fontSize: 14, cursor: recording ? 'not-allowed' : 'pointer',
+            padding: '7px 14px', borderRadius: 8,
+            background: recording ? 'rgba(239,68,68,0.15)' : 'rgba(255,255,255,0.08)',
+            border: `1px solid ${recording ? 'rgba(239,68,68,0.3)' : 'rgba(255,255,255,0.12)'}`,
+            color: recording ? '#fca5a5' : '#fff', fontSize: 13, cursor: recording ? 'not-allowed' : 'pointer',
           }}>
             {recording ? '⏺ Recording…' : '⏺ Record & Export'}
           </button>
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
+      <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
         {/* Video player */}
         <div style={{ flexShrink: 0 }}>
+          {/* Stories progress */}
+          <div style={{ marginBottom: 8 }}>
+            <StoriesProgress total={scenes.length} current={currentScene} accentColor={currentPal.accent} />
+          </div>
+
           <div ref={videoRef} style={{
-            width: previewW, height: previewH, borderRadius: 12, overflow: 'hidden',
+            width: previewW, height: previewH, borderRadius: 14, overflow: 'hidden',
             position: 'relative', background: '#000',
-            boxShadow: '0 0 0 1px rgba(255,255,255,0.1), 0 20px 60px rgba(0,0,0,0.6)',
+            boxShadow: `0 0 0 1px rgba(255,255,255,0.08), 0 24px 80px rgba(0,0,0,0.7), 0 0 60px ${currentPal.accent}18`,
           }}>
-            <AnimatePresence mode="popLayout">
+            <AnimatePresence mode="wait">
               {scene && <SceneView key={scene.id} scene={scene} isShort={isShort} />}
             </AnimatePresence>
           </div>
 
-          {/* Progress bar */}
-          <div style={{ marginTop: 10 }}>
-            <SceneProgressBar scenes={scenes} currentIdx={currentScene} accentColor={scene?.accentColor ?? '#fff'} />
-          </div>
-
           {/* Controls */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, marginTop: 14 }}>
-            <button onClick={() => setCurrentScene(Math.max(0, currentScene - 1))} style={{
-              width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,0.08)',
-              border: '1px solid rgba(255,255,255,0.12)', color: '#fff', fontSize: 16, cursor: 'pointer',
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginTop: 14 }}>
+            <button onClick={() => { setCurrentScene(Math.max(0, currentScene - 1)); setPlaying(false); }} style={{
+              width: 36, height: 36, borderRadius: '50%',
+              background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)',
+              color: '#fff', fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>‹</button>
             <button onClick={togglePlay} style={{
-              width: 48, height: 48, borderRadius: '50%', background: '#fff',
-              border: 'none', color: '#000', fontSize: 20, cursor: 'pointer', fontWeight: 700,
+              width: 52, height: 52, borderRadius: '50%',
+              background: currentPal.accent, border: 'none',
+              color: currentPal.highlightText, fontSize: 22, cursor: 'pointer', fontWeight: 700,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: `0 4px 20px ${currentPal.accent}55`,
             }}>{playing ? '⏸' : '▶'}</button>
-            <button onClick={() => setCurrentScene(Math.min(scenes.length - 1, currentScene + 1))} style={{
-              width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,0.08)',
-              border: '1px solid rgba(255,255,255,0.12)', color: '#fff', fontSize: 16, cursor: 'pointer',
+            <button onClick={() => { setCurrentScene(Math.min(scenes.length - 1, currentScene + 1)); setPlaying(false); }} style={{
+              width: 36, height: 36, borderRadius: '50%',
+              background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)',
+              color: '#fff', fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>›</button>
           </div>
-          <div style={{ textAlign: 'center', marginTop: 8, fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>
-            Scene {currentScene + 1} of {scenes.length}
+
+          <div style={{ textAlign: 'center', marginTop: 8, fontSize: 12, color: 'rgba(255,255,255,0.3)' }}>
+            {currentScene + 1} / {scenes.length}
           </div>
         </div>
 
         {/* Scene list */}
         <div style={{ flex: 1, minWidth: 0, maxHeight: previewH + 60, overflowY: 'auto' }}>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>Scenes</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {scenes.map((sc, i) => (
-              <button key={sc.id} onClick={() => { setCurrentScene(i); setPlaying(false); if (timerRef.current) clearTimeout(timerRef.current); }} style={{
-                display: 'flex', alignItems: 'flex-start', gap: 12, padding: '10px 12px', borderRadius: 8, textAlign: 'left',
-                background: currentScene === i ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.04)',
-                border: `1px solid ${currentScene === i ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.07)'}`,
-                cursor: 'pointer', width: '100%', transition: 'all 0.15s',
-              }}>
-                <div style={{ width: 28, height: 28, borderRadius: 6, background: sc.accentColor + '33', border: `1px solid ${sc.accentColor}55`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: sc.accentColor }}>{i + 1}</span>
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: currentScene === i ? '#fff' : 'rgba(255,255,255,0.7)', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {sc.text}
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Slides</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+            {scenes.map((sc, i) => {
+              const pal = PALETTES[sc.palette] ?? PALETTES.dark;
+              const isActive = currentScene === i;
+              return (
+                <button key={sc.id} onClick={() => { setCurrentScene(i); setPlaying(false); if (timerRef.current) clearTimeout(timerRef.current); }} style={{
+                  display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px', borderRadius: 9,
+                  textAlign: 'left', width: '100%', cursor: 'pointer', transition: 'all 0.15s',
+                  background: isActive ? 'rgba(255,255,255,0.09)' : 'rgba(255,255,255,0.03)',
+                  border: `1px solid ${isActive ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.06)'}`,
+                  borderLeft: `3px solid ${isActive ? pal.accent : 'transparent'}`,
+                }}>
+                  {/* Palette swatch + scene number */}
+                  <div style={{
+                    width: 32, height: 32, borderRadius: 7, flexShrink: 0,
+                    background: pal.bg, border: `1px solid ${pal.accent}44`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 12, fontWeight: 800, color: pal.accent,
+                  }}>
+                    {sc.emoji || i + 1}
                   </div>
-                  <div style={{ display: 'flex', gap: 8, fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>
-                    <span>{sc.character.action}</span>
-                    <span>·</span>
-                    <span>{sc.mood}</span>
-                    <span>·</span>
-                    <span>{(sc.duration / 1000).toFixed(1)}s</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{
+                      fontSize: 12, fontWeight: 600, marginBottom: 2,
+                      color: isActive ? '#fff' : 'rgba(255,255,255,0.65)',
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>
+                      {sc.headline}
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, fontSize: 11, color: 'rgba(255,255,255,0.28)' }}>
+                      <span style={{ color: pal.accent + 'cc', fontWeight: 600 }}>{sc.palette}</span>
+                      <span>·</span>
+                      <span>{sc.animStyle}</span>
+                      <span>·</span>
+                      <span>{(sc.duration / 1000).toFixed(1)}s</span>
+                    </div>
                   </div>
-                </div>
-              </button>
-            ))}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
