@@ -111,18 +111,9 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 }
 
 // ─── AI Generator Panel ───────────────────────────────────────────────
-type Provider = 'openai' | 'higgsfield' | 'galaxy';
-
-const PROVIDERS: { id: Provider; label: string; desc: string }[] = [
-  { id: 'openai', label: 'GPT Image', desc: 'OpenAI GPT Image-1 — best for text on images' },
-  { id: 'higgsfield', label: 'Higgsfield', desc: 'Flux model — fast, cinematic style' },
-  { id: 'galaxy', label: 'Galaxy.ai', desc: 'Galaxy AI — creative compositions' },
-];
-
 function AIGenerator({ onImageGenerated }: { onImageGenerated: (src: string) => void }) {
   const [prompt, setPrompt] = useState('');
   const [ratio, setRatio] = useState<Ratio>('16:9');
-  const [provider, setProvider] = useState<Provider>('openai');
   const [claudeEnhance, setClaudeEnhance] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -162,7 +153,6 @@ function AIGenerator({ onImageGenerated }: { onImageGenerated: (src: string) => 
           prompt,
           referenceImage: refImage || undefined,
           aspectRatio: ratio,
-          provider,
           claudeEnhance,
         }),
       });
@@ -256,36 +246,8 @@ function AIGenerator({ onImageGenerated }: { onImageGenerated: (src: string) => 
           </div>
         </div>
 
-        {/* AI Provider */}
+        {/* Settings */}
         <div style={panelStyle}>
-          <span style={labelStyle}>Image Generator</span>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '14px' }}>
-            {PROVIDERS.map(p => (
-              <button
-                key={p.id}
-                onClick={() => setProvider(p.id)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '10px',
-                  padding: '10px 14px', borderRadius: '8px', textAlign: 'left',
-                  background: provider === p.id ? 'rgba(0,204,255,0.08)' : 'rgba(255,255,255,0.03)',
-                  border: `1px solid ${provider === p.id ? 'rgba(0,204,255,0.3)' : 'rgba(255,255,255,0.08)'}`,
-                  cursor: 'pointer',
-                }}
-              >
-                <div style={{
-                  width: '16px', height: '16px', borderRadius: '50%',
-                  border: `2px solid ${provider === p.id ? '#00ccff' : 'rgba(255,255,255,0.2)'}`,
-                  background: provider === p.id ? '#00ccff' : 'transparent',
-                  flexShrink: 0,
-                }} />
-                <div>
-                  <div style={{ fontSize: '14px', fontWeight: 600, color: provider === p.id ? '#fff' : 'rgba(255,255,255,0.6)' }}>{p.label}</div>
-                  <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)' }}>{p.desc}</div>
-                </div>
-              </button>
-            ))}
-          </div>
-
           {/* Claude Enhance toggle */}
           <div
             onClick={() => setClaudeEnhance(!claudeEnhance)}
@@ -347,7 +309,7 @@ function AIGenerator({ onImageGenerated }: { onImageGenerated: (src: string) => 
               color: prompt.trim() && !loading ? '#000' : 'rgba(255,255,255,0.3)',
             }}
           >
-            {loading ? `Generating with ${PROVIDERS.find(p => p.id === provider)?.label}...` : `Generate with ${PROVIDERS.find(p => p.id === provider)?.label}`}
+            {loading ? 'Generating thumbnail...' : 'Generate AI Thumbnail'}
           </button>
 
           {error && (
