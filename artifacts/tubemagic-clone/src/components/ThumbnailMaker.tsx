@@ -8,7 +8,6 @@ type CanvasElement = {
   width: number;
   height: number;
   rotation: number;
-  // text props
   text?: string;
   fontSize?: number;
   fontFamily?: string;
@@ -16,7 +15,6 @@ type CanvasElement = {
   strokeColor?: string;
   strokeWidth?: number;
   bold?: boolean;
-  // image props
   src?: string;
   naturalWidth?: number;
   naturalHeight?: number;
@@ -28,17 +26,15 @@ type Template = {
   elements: Omit<CanvasElement, 'id'>[];
 };
 
+type Tab = 'editor' | 'ai';
+type Ratio = '16:9' | '9:16';
+
 const CANVAS_W = 1280;
 const CANVAS_H = 720;
 
 const FONTS = [
-  'Impact',
-  'Arial Black',
-  'Montserrat',
-  'Bebas Neue',
-  'Oswald',
-  'Anton',
-  'Roboto Condensed',
+  'Impact', 'Arial Black', 'Montserrat', 'Bebas Neue',
+  'Oswald', 'Anton', 'Roboto Condensed',
 ];
 
 const BG_COLORS = [
@@ -92,6 +88,15 @@ const TEMPLATES: Template[] = [
   },
 ];
 
+const AI_PRESETS = [
+  { label: 'Shocked face reaction', prompt: 'A person with an extremely shocked/surprised facial expression, mouth wide open, eyes wide, dramatic lighting, bright colorful background' },
+  { label: 'Money explosion', prompt: 'Piles of cash and gold coins exploding outward, dramatic lighting, dark background with golden glow, money flying everywhere' },
+  { label: 'Before/After split', prompt: 'Split screen comparison thumbnail, left side dark and broken, right side bright and amazing, dramatic transformation reveal' },
+  { label: 'Giant red arrow pointing', prompt: 'A massive glowing red arrow pointing at a mysterious object or reveal, dark background, dramatic spotlight effect' },
+  { label: 'Challenge arena', prompt: 'Epic competition arena with dramatic lighting, spotlights, crowd silhouettes, versus battle setup' },
+  { label: 'Unboxing mystery', prompt: 'A mysterious glowing box being opened with bright light pouring out, dark dramatic background, sense of wonder and excitement' },
+];
+
 let idCounter = 0;
 function newId() { return `el-${++idCounter}`; }
 
@@ -105,25 +110,234 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
-function drawRoundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  ctx.lineTo(x + r, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
-  ctx.closePath();
+// ─── AI Generator Panel ───────────────────────────────────────────────
+function AIGenerator({ onImageGenerated }: { onImageGenerated: (src: string) => void }) {
+  const [prompt, setPrompt] = useState('');
+  const [ratio, setRatio] = useState<Ratio>('16:9');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [refImage, setRefImage] = useState<string | null>(null);
+  const [refPreview, setRefPreview] = useState<string | null>(null);
+  const [generatedImages, setGeneratedImages] = useState<string[]>([]);
+
+  function uploadRef() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const dataUrl = ev.target?.result as string;
+        setRefPreview(dataUrl);
+        // Extract base64 without the data:image/...;base64, prefix
+        const base64 = dataUrl.split(',')[1];
+        setRefImage(base64);
+      };
+      reader.readAsDataURL(file);
+    };
+    input.click();
+  }
+
+  async function generate() {
+    if (!prompt.trim()) return;
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch('/api/tools/thumbnail-ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt,
+          referenceImage: refImage || undefined,
+          aspectRatio: ratio,
+        }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      const src = `data:image/png;base64,${data.image}`;
+      setGeneratedImages(prev => [src, ...prev]);
+    } catch {
+      setError('Generation failed. Try again or simplify your prompt.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function downloadImage(src: string) {
+    const a = document.createElement('a');
+    a.href = src;
+    a.download = `thumbnail-ai-${ratio.replace(':', 'x')}.png`;
+    a.click();
+  }
+
+  const panelStyle: React.CSSProperties = {
+    background: '#111',
+    border: '1px solid rgba(255,255,255,0.08)',
+    borderRadius: '12px',
+    padding: '16px',
+  };
+
+  const labelStyle: React.CSSProperties = {
+    fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.35)',
+    textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '8px', display: 'block',
+  };
+
+  const btnStyle: React.CSSProperties = {
+    padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 600,
+    border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)',
+    color: 'rgba(255,255,255,0.7)', cursor: 'pointer',
+  };
+
+  return (
+    <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+      {/* Left: Controls */}
+      <div style={{ flex: '1 1 400px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={panelStyle}>
+          <span style={labelStyle}>Describe Your Thumbnail</span>
+          <textarea
+            value={prompt}
+            onChange={e => setPrompt(e.target.value)}
+            placeholder="e.g. Me looking shocked holding a giant check for $100,000, bright red background, huge white text saying 'I WON'"
+            rows={4}
+            style={{
+              width: '100%', background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: '8px', padding: '12px', color: '#fff', fontSize: '15px',
+              fontFamily: 'inherit', resize: 'vertical',
+            }}
+          />
+
+          {/* Quick presets */}
+          <span style={{ ...labelStyle, marginTop: '12px' }}>Quick Presets</span>
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+            {AI_PRESETS.map(p => (
+              <button
+                key={p.label}
+                onClick={() => setPrompt(p.prompt)}
+                style={{ ...btnStyle, fontSize: '11px', padding: '5px 10px' }}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Reference image */}
+        <div style={panelStyle}>
+          <span style={labelStyle}>Reference Image (Optional)</span>
+          <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.35)', margin: '0 0 10px' }}>
+            Upload your face or a photo — AI will build the thumbnail around it
+          </p>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <button onClick={uploadRef} style={btnStyle}>
+              {refPreview ? 'Change Image' : 'Upload Photo'}
+            </button>
+            {refPreview && (
+              <>
+                <img src={refPreview} alt="ref" style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }} />
+                <button onClick={() => { setRefImage(null); setRefPreview(null); }} style={{ ...btnStyle, color: '#ef4444', borderColor: 'rgba(239,68,68,0.3)', fontSize: '11px' }}>
+                  Remove
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Aspect ratio + Generate */}
+        <div style={panelStyle}>
+          <span style={labelStyle}>Aspect Ratio</span>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+            {(['16:9', '9:16'] as Ratio[]).map(r => (
+              <button
+                key={r}
+                onClick={() => setRatio(r)}
+                style={{
+                  ...btnStyle, flex: 1,
+                  background: ratio === r ? 'rgba(0,204,255,0.1)' : 'rgba(255,255,255,0.05)',
+                  color: ratio === r ? '#00ccff' : 'rgba(255,255,255,0.5)',
+                  borderColor: ratio === r ? 'rgba(0,204,255,0.3)' : 'rgba(255,255,255,0.12)',
+                }}
+              >
+                {r === '16:9' ? 'YouTube (16:9)' : 'Shorts (9:16)'}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={generate}
+            disabled={!prompt.trim() || loading}
+            style={{
+              width: '100%', padding: '14px', borderRadius: '10px', fontWeight: 700,
+              fontSize: '16px', border: 'none', cursor: loading || !prompt.trim() ? 'not-allowed' : 'pointer',
+              background: prompt.trim() && !loading ? '#fff' : '#1a1a1a',
+              color: prompt.trim() && !loading ? '#000' : 'rgba(255,255,255,0.3)',
+            }}
+          >
+            {loading ? 'Generating thumbnail...' : 'Generate AI Thumbnail'}
+          </button>
+
+          {error && (
+            <div style={{ marginTop: '10px', background: '#ff4d4d15', border: '1px solid #ff4d4d30', borderRadius: '8px', padding: '10px 14px', color: '#ff4d4d', fontSize: '13px' }}>
+              {error}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Right: Results */}
+      <div style={{ flex: '1 1 400px' }}>
+        {loading && (
+          <div style={{ ...panelStyle, textAlign: 'center', padding: '40px 20px' }}>
+            <div style={{ width: '28px', height: '28px', border: '3px solid rgba(255,255,255,0.1)', borderTop: '3px solid #fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
+            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px' }}>AI is creating your thumbnail...</div>
+            <div style={{ color: 'rgba(255,255,255,0.25)', fontSize: '12px', marginTop: '4px' }}>This takes 10-30 seconds</div>
+          </div>
+        )}
+
+        {generatedImages.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {generatedImages.map((src, i) => (
+              <div key={i} style={panelStyle}>
+                <img
+                  src={src}
+                  alt={`Generated thumbnail ${i + 1}`}
+                  style={{
+                    width: '100%', borderRadius: '8px', display: 'block', marginBottom: '10px',
+                  }}
+                />
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={() => downloadImage(src)} style={{ ...btnStyle, background: 'rgba(34,197,94,0.1)', color: '#22c55e', borderColor: 'rgba(34,197,94,0.3)' }}>
+                    Download PNG
+                  </button>
+                  <button onClick={() => onImageGenerated(src)} style={{ ...btnStyle, background: 'rgba(0,204,255,0.1)', color: '#00ccff', borderColor: 'rgba(0,204,255,0.3)' }}>
+                    Send to Editor
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {!loading && generatedImages.length === 0 && (
+          <div style={{ ...panelStyle, textAlign: 'center', padding: '60px 20px', color: 'rgba(255,255,255,0.2)' }}>
+            <div style={{ fontSize: '48px', marginBottom: '12px' }}>AI</div>
+            <div style={{ fontSize: '14px' }}>Describe your thumbnail and hit generate</div>
+            <div style={{ fontSize: '12px', marginTop: '6px' }}>Upload a photo of yourself for personalized results</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
+// ─── Main Thumbnail Maker ─────────────────────────────────────────────
 export default function ThumbnailMaker() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const imageCache = useRef<Map<string, HTMLImageElement>>(new Map());
 
+  const [tab, setTab] = useState<Tab>('ai');
   const [bgColor, setBgColor] = useState('#ff0000');
   const [bgImage, setBgImage] = useState<string | null>(null);
   const [elements, setElements] = useState<CanvasElement[]>([]);
@@ -135,7 +349,12 @@ export default function ThumbnailMaker() {
 
   const selected = elements.find(e => e.id === selectedId) || null;
 
-  // Calculate scale to fit container
+  // When AI generates an image, send it to the editor as a background
+  function handleAIImageToEditor(src: string) {
+    setBgImage(src);
+    setTab('editor');
+  }
+
   useEffect(() => {
     function updateScale() {
       if (containerRef.current) {
@@ -148,18 +367,15 @@ export default function ThumbnailMaker() {
     return () => window.removeEventListener('resize', updateScale);
   }, []);
 
-  // Render canvas
   const render = useCallback(async () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Background
     ctx.fillStyle = bgColor;
     ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
-    // Background image
     if (bgImage) {
       try {
         let img = imageCache.current.get(bgImage);
@@ -171,21 +387,14 @@ export default function ThumbnailMaker() {
         const canvasRatio = CANVAS_W / CANVAS_H;
         let drawW, drawH, drawX, drawY;
         if (imgRatio > canvasRatio) {
-          drawH = CANVAS_H;
-          drawW = drawH * imgRatio;
-          drawX = (CANVAS_W - drawW) / 2;
-          drawY = 0;
+          drawH = CANVAS_H; drawW = drawH * imgRatio; drawX = (CANVAS_W - drawW) / 2; drawY = 0;
         } else {
-          drawW = CANVAS_W;
-          drawH = drawW / imgRatio;
-          drawX = 0;
-          drawY = (CANVAS_H - drawH) / 2;
+          drawW = CANVAS_W; drawH = drawW / imgRatio; drawX = 0; drawY = (CANVAS_H - drawH) / 2;
         }
         ctx.drawImage(img, drawX, drawY, drawW, drawH);
       } catch { /* skip */ }
     }
 
-    // Draw elements
     for (const el of elements) {
       ctx.save();
       ctx.translate(el.x, el.y);
@@ -196,8 +405,6 @@ export default function ThumbnailMaker() {
         ctx.font = `${fontStyle} ${el.fontSize || 80}px "${el.fontFamily || 'Impact'}", Impact, sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-
-        // Stroke (outline)
         if (el.strokeWidth && el.strokeWidth > 0) {
           ctx.strokeStyle = el.strokeColor || '#000000';
           ctx.lineWidth = el.strokeWidth;
@@ -205,8 +412,6 @@ export default function ThumbnailMaker() {
           ctx.miterLimit = 2;
           ctx.strokeText(el.text, 0, 0);
         }
-
-        // Fill
         ctx.fillStyle = el.fill || '#ffffff';
         ctx.fillText(el.text, 0, 0);
       }
@@ -225,14 +430,12 @@ export default function ThumbnailMaker() {
       ctx.restore();
     }
 
-    // Selection box
     if (selectedId) {
       const sel = elements.find(e => e.id === selectedId);
       if (sel) {
         ctx.save();
         ctx.translate(sel.x, sel.y);
         if (sel.rotation) ctx.rotate((sel.rotation * Math.PI) / 180);
-
         let bw: number, bh: number;
         if (sel.type === 'text') {
           const fontStyle = sel.bold ? 'bold' : 'normal';
@@ -244,17 +447,13 @@ export default function ThumbnailMaker() {
           bw = sel.width + 10;
           bh = sel.height + 10;
         }
-
         ctx.strokeStyle = '#00ccff';
         ctx.lineWidth = 3;
         ctx.setLineDash([8, 4]);
         ctx.strokeRect(-bw / 2, -bh / 2, bw, bh);
         ctx.setLineDash([]);
-
-        // Resize handle
         ctx.fillStyle = '#00ccff';
         ctx.fillRect(bw / 2 - 8, bh / 2 - 8, 16, 16);
-
         ctx.restore();
       }
     }
@@ -262,13 +461,9 @@ export default function ThumbnailMaker() {
 
   useEffect(() => { render(); }, [render]);
 
-  // Mouse helpers
   function canvasCoords(e: React.MouseEvent) {
     const rect = canvasRef.current!.getBoundingClientRect();
-    return {
-      x: (e.clientX - rect.left) / scale,
-      y: (e.clientY - rect.top) / scale,
-    };
+    return { x: (e.clientX - rect.left) / scale, y: (e.clientY - rect.top) / scale };
   }
 
   function hitTest(mx: number, my: number): CanvasElement | null {
@@ -276,15 +471,11 @@ export default function ThumbnailMaker() {
       const el = elements[i];
       let hw: number, hh: number;
       if (el.type === 'text') {
-        hw = (el.width || 400) / 2;
-        hh = ((el.fontSize || 80) * 1.3) / 2;
+        hw = (el.width || 400) / 2; hh = ((el.fontSize || 80) * 1.3) / 2;
       } else {
-        hw = el.width / 2;
-        hh = el.height / 2;
+        hw = el.width / 2; hh = el.height / 2;
       }
-      if (mx >= el.x - hw && mx <= el.x + hw && my >= el.y - hh && my <= el.y + hh) {
-        return el;
-      }
+      if (mx >= el.x - hw && mx <= el.x + hw && my >= el.y - hh && my <= el.y + hh) return el;
     }
     return null;
   }
@@ -293,87 +484,52 @@ export default function ThumbnailMaker() {
     if (!selected) return false;
     let hw: number, hh: number;
     if (selected.type === 'text') {
-      hw = (selected.width || 400) / 2;
-      hh = ((selected.fontSize || 80) * 1.3) / 2;
+      hw = (selected.width || 400) / 2; hh = ((selected.fontSize || 80) * 1.3) / 2;
     } else {
-      hw = selected.width / 2;
-      hh = selected.height / 2;
+      hw = selected.width / 2; hh = selected.height / 2;
     }
-    const hx = selected.x + hw;
-    const hy = selected.y + hh;
-    return Math.abs(mx - hx) < 16 && Math.abs(my - hy) < 16;
+    return Math.abs(mx - (selected.x + hw)) < 16 && Math.abs(my - (selected.y + hh)) < 16;
   }
 
   function onMouseDown(e: React.MouseEvent) {
     const { x, y } = canvasCoords(e);
-
-    if (selected && isOnResizeHandle(x, y)) {
-      setResizing(true);
-      return;
-    }
-
+    if (selected && isOnResizeHandle(x, y)) { setResizing(true); return; }
     const hit = hitTest(x, y);
-    if (hit) {
-      setSelectedId(hit.id);
-      setDragging(true);
-      setDragOffset({ x: x - hit.x, y: y - hit.y });
-    } else {
-      setSelectedId(null);
-    }
+    if (hit) { setSelectedId(hit.id); setDragging(true); setDragOffset({ x: x - hit.x, y: y - hit.y }); }
+    else setSelectedId(null);
   }
 
   function onMouseMove(e: React.MouseEvent) {
     if (dragging && selectedId) {
       const { x, y } = canvasCoords(e);
-      setElements(prev => prev.map(el =>
-        el.id === selectedId ? { ...el, x: x - dragOffset.x, y: y - dragOffset.y } : el
-      ));
+      setElements(prev => prev.map(el => el.id === selectedId ? { ...el, x: x - dragOffset.x, y: y - dragOffset.y } : el));
     }
     if (resizing && selected) {
       const { x, y } = canvasCoords(e);
       if (selected.type === 'text') {
         const newSize = Math.max(20, Math.min(300, Math.abs(y - selected.y) * 2));
-        setElements(prev => prev.map(el =>
-          el.id === selectedId ? { ...el, fontSize: Math.round(newSize) } : el
-        ));
+        setElements(prev => prev.map(el => el.id === selectedId ? { ...el, fontSize: Math.round(newSize) } : el));
       } else {
         const newW = Math.max(50, (x - selected.x) * 2);
         const ratio = selected.naturalHeight && selected.naturalWidth ? selected.naturalHeight / selected.naturalWidth : selected.height / selected.width;
-        setElements(prev => prev.map(el =>
-          el.id === selectedId ? { ...el, width: Math.round(newW), height: Math.round(newW * ratio) } : el
-        ));
+        setElements(prev => prev.map(el => el.id === selectedId ? { ...el, width: Math.round(newW), height: Math.round(newW * ratio) } : el));
       }
     }
   }
 
-  function onMouseUp() {
-    setDragging(false);
-    setResizing(false);
-  }
+  function onMouseUp() { setDragging(false); setResizing(false); }
 
-  // Add text
   function addText() {
     const el: CanvasElement = {
-      id: newId(),
-      type: 'text',
-      x: CANVAS_W / 2,
-      y: CANVAS_H / 2,
-      width: 600,
-      height: 120,
-      rotation: 0,
-      text: 'YOUR TEXT',
-      fontSize: 100,
-      fontFamily: 'Impact',
-      fill: '#ffffff',
-      strokeColor: '#000000',
-      strokeWidth: 6,
-      bold: true,
+      id: newId(), type: 'text', x: CANVAS_W / 2, y: CANVAS_H / 2,
+      width: 600, height: 120, rotation: 0, text: 'YOUR TEXT',
+      fontSize: 100, fontFamily: 'Impact', fill: '#ffffff',
+      strokeColor: '#000000', strokeWidth: 6, bold: true,
     };
     setElements(prev => [...prev, el]);
     setSelectedId(el.id);
   }
 
-  // Upload image
   function uploadImage(asBg: boolean) {
     const input = document.createElement('input');
     input.type = 'file';
@@ -384,60 +540,42 @@ export default function ThumbnailMaker() {
       const reader = new FileReader();
       reader.onload = async (ev) => {
         const src = ev.target?.result as string;
-        if (asBg) {
-          setBgImage(src);
-        } else {
-          const img = await loadImage(src);
-          const maxH = CANVAS_H * 0.7;
-          const ratio = img.width / img.height;
-          let w = img.width;
-          let h = img.height;
-          if (h > maxH) { h = maxH; w = h * ratio; }
-          if (w > CANVAS_W * 0.7) { w = CANVAS_W * 0.7; h = w / ratio; }
-          const el: CanvasElement = {
-            id: newId(),
-            type: 'image',
-            x: CANVAS_W / 2,
-            y: CANVAS_H / 2,
-            width: Math.round(w),
-            height: Math.round(h),
-            rotation: 0,
-            src,
-            naturalWidth: img.width,
-            naturalHeight: img.height,
-          };
-          setElements(prev => [...prev, el]);
-          setSelectedId(el.id);
-        }
+        if (asBg) { setBgImage(src); return; }
+        const img = await loadImage(src);
+        const maxH = CANVAS_H * 0.7;
+        const ratio = img.width / img.height;
+        let w = img.width, h = img.height;
+        if (h > maxH) { h = maxH; w = h * ratio; }
+        if (w > CANVAS_W * 0.7) { w = CANVAS_W * 0.7; h = w / ratio; }
+        const el: CanvasElement = {
+          id: newId(), type: 'image', x: CANVAS_W / 2, y: CANVAS_H / 2,
+          width: Math.round(w), height: Math.round(h), rotation: 0,
+          src, naturalWidth: img.width, naturalHeight: img.height,
+        };
+        setElements(prev => [...prev, el]);
+        setSelectedId(el.id);
       };
       reader.readAsDataURL(file);
     };
     input.click();
   }
 
-  // Update selected element
   function updateSelected(updates: Partial<CanvasElement>) {
     if (!selectedId) return;
     setElements(prev => prev.map(el => el.id === selectedId ? { ...el, ...updates } : el));
   }
 
-  // Delete selected
   function deleteSelected() {
     if (!selectedId) return;
     setElements(prev => prev.filter(el => el.id !== selectedId));
     setSelectedId(null);
   }
 
-  // Layer controls
   function moveUp() {
     if (!selectedId) return;
     setElements(prev => {
       const idx = prev.findIndex(e => e.id === selectedId);
-      if (idx < prev.length - 1) {
-        const next = [...prev];
-        [next[idx], next[idx + 1]] = [next[idx + 1], next[idx]];
-        return next;
-      }
+      if (idx < prev.length - 1) { const next = [...prev]; [next[idx], next[idx + 1]] = [next[idx + 1], next[idx]]; return next; }
       return prev;
     });
   }
@@ -446,16 +584,11 @@ export default function ThumbnailMaker() {
     if (!selectedId) return;
     setElements(prev => {
       const idx = prev.findIndex(e => e.id === selectedId);
-      if (idx > 0) {
-        const next = [...prev];
-        [next[idx], next[idx - 1]] = [next[idx - 1], next[idx]];
-        return next;
-      }
+      if (idx > 0) { const next = [...prev]; [next[idx], next[idx - 1]] = [next[idx - 1], next[idx]]; return next; }
       return prev;
     });
   }
 
-  // Duplicate
   function duplicateSelected() {
     if (!selected) return;
     const dup: CanvasElement = { ...selected, id: newId(), x: selected.x + 30, y: selected.y + 30 };
@@ -463,357 +596,233 @@ export default function ThumbnailMaker() {
     setSelectedId(dup.id);
   }
 
-  // Apply template
   function applyTemplate(t: Template) {
-    setBgColor(t.bg);
-    setBgImage(null);
-    imageCache.current.clear();
-    const newEls = t.elements.map(e => ({ ...e, id: newId() })) as CanvasElement[];
-    setElements(newEls);
+    setBgColor(t.bg); setBgImage(null); imageCache.current.clear();
+    setElements(t.elements.map(e => ({ ...e, id: newId() })) as CanvasElement[]);
     setSelectedId(null);
   }
 
-  // Export
   function exportPng() {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    // Re-render without selection box
     const prevSelected = selectedId;
     setSelectedId(null);
     setTimeout(() => {
       const dataUrl = canvas.toDataURL('image/png');
       const a = document.createElement('a');
-      a.href = dataUrl;
-      a.download = 'thumbnail-1280x720.png';
-      a.click();
+      a.href = dataUrl; a.download = 'thumbnail-1280x720.png'; a.click();
       setSelectedId(prevSelected);
     }, 50);
   }
 
-  // Styles
   const panelStyle: React.CSSProperties = {
-    background: '#111',
-    border: '1px solid rgba(255,255,255,0.08)',
-    borderRadius: '12px',
-    padding: '16px',
+    background: '#111', border: '1px solid rgba(255,255,255,0.08)',
+    borderRadius: '12px', padding: '16px',
   };
-
   const labelStyle: React.CSSProperties = {
-    fontSize: '11px',
-    fontWeight: 700,
-    color: 'rgba(255,255,255,0.35)',
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.07em',
-    marginBottom: '8px',
-    display: 'block',
+    fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.35)',
+    textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '8px', display: 'block',
   };
-
   const btnStyle: React.CSSProperties = {
-    padding: '8px 16px',
-    borderRadius: '8px',
-    fontSize: '13px',
-    fontWeight: 600,
-    border: '1px solid rgba(255,255,255,0.12)',
-    background: 'rgba(255,255,255,0.05)',
-    color: 'rgba(255,255,255,0.7)',
-    cursor: 'pointer',
+    padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 600,
+    border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)',
+    color: 'rgba(255,255,255,0.7)', cursor: 'pointer',
+  };
+  const btnPrimaryStyle: React.CSSProperties = {
+    ...btnStyle, background: '#ffffff', color: '#000000', border: '1px solid #ffffff',
   };
 
-  const btnPrimaryStyle: React.CSSProperties = {
-    ...btnStyle,
-    background: '#ffffff',
-    color: '#000000',
-    border: '1px solid #ffffff',
-  };
+  const tabStyle = (active: boolean): React.CSSProperties => ({
+    padding: '10px 24px', borderRadius: '10px 10px 0 0', fontSize: '15px', fontWeight: 600,
+    border: 'none', cursor: 'pointer',
+    background: active ? '#111' : 'transparent',
+    color: active ? '#fff' : 'rgba(255,255,255,0.4)',
+    borderBottom: active ? '2px solid #00ccff' : '2px solid transparent',
+  });
 
   return (
     <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '40px 24px' }}>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+
       <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>
         Thumbnail Maker
       </h1>
-      <p style={{ fontSize: '15px', color: 'rgba(255,255,255,0.45)', marginBottom: '24px' }}>
-        Drag-and-drop editor — upload your face, add bold text, export YouTube-ready thumbnails
+      <p style={{ fontSize: '15px', color: 'rgba(255,255,255,0.45)', marginBottom: '20px' }}>
+        AI-powered generation + drag-and-drop editor — create viral thumbnails in seconds
       </p>
 
-      {/* Templates */}
-      <div style={{ marginBottom: '20px' }}>
-        <span style={labelStyle}>Templates</span>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          {TEMPLATES.map(t => (
-            <button
-              key={t.name}
-              onClick={() => applyTemplate(t)}
-              style={{
-                ...btnStyle,
-                background: t.bg,
-                color: ['#000000', '#ffcc00', '#ffffff'].includes(t.bg) ? '#000' : '#fff',
-                border: `2px solid ${t.bg === '#000000' ? 'rgba(255,255,255,0.2)' : t.bg}`,
-                fontSize: '12px',
-                padding: '6px 14px',
-              }}
-            >
-              {t.name}
-            </button>
-          ))}
-        </div>
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: '4px', marginBottom: '20px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+        <button onClick={() => setTab('ai')} style={tabStyle(tab === 'ai')}>
+          AI Generator
+        </button>
+        <button onClick={() => setTab('editor')} style={tabStyle(tab === 'editor')}>
+          Manual Editor
+        </button>
       </div>
 
-      <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-        {/* Canvas */}
-        <div ref={containerRef} style={{ flex: '1 1 700px', minWidth: '300px' }}>
-          <div style={{
-            ...panelStyle,
-            padding: '8px',
-            display: 'inline-block',
-            width: '100%',
-          }}>
-            <canvas
-              ref={canvasRef}
-              width={CANVAS_W}
-              height={CANVAS_H}
-              onMouseDown={onMouseDown}
-              onMouseMove={onMouseMove}
-              onMouseUp={onMouseUp}
-              onMouseLeave={onMouseUp}
-              style={{
-                width: '100%',
-                height: 'auto',
-                borderRadius: '8px',
-                cursor: dragging ? 'grabbing' : resizing ? 'nwse-resize' : 'crosshair',
-                display: 'block',
-              }}
-            />
+      {/* AI Tab */}
+      {tab === 'ai' && (
+        <AIGenerator onImageGenerated={handleAIImageToEditor} />
+      )}
+
+      {/* Editor Tab */}
+      {tab === 'editor' && (
+        <>
+          {/* Templates */}
+          <div style={{ marginBottom: '20px' }}>
+            <span style={labelStyle}>Templates</span>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              {TEMPLATES.map(t => (
+                <button key={t.name} onClick={() => applyTemplate(t)} style={{
+                  ...btnStyle, background: t.bg,
+                  color: ['#000000', '#ffcc00', '#ffffff'].includes(t.bg) ? '#000' : '#fff',
+                  border: `2px solid ${t.bg === '#000000' ? 'rgba(255,255,255,0.2)' : t.bg}`,
+                  fontSize: '12px', padding: '6px 14px',
+                }}>
+                  {t.name}
+                </button>
+              ))}
+            </div>
           </div>
 
-          {/* Action bar */}
-          <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap' }}>
-            <button onClick={addText} style={btnStyle}>+ Add Text</button>
-            <button onClick={() => uploadImage(false)} style={btnStyle}>+ Add Image</button>
-            <button onClick={() => uploadImage(true)} style={btnStyle}>+ Background Image</button>
-            {selected && (
-              <>
-                <button onClick={duplicateSelected} style={btnStyle}>Duplicate</button>
-                <button onClick={moveUp} style={btnStyle}>Layer Up</button>
-                <button onClick={moveDown} style={btnStyle}>Layer Down</button>
-                <button onClick={deleteSelected} style={{ ...btnStyle, color: '#ef4444', borderColor: 'rgba(239,68,68,0.3)' }}>Delete</button>
-              </>
-            )}
-            <div style={{ flex: 1 }} />
-            <button onClick={exportPng} style={btnPrimaryStyle}>Download PNG (1280x720)</button>
-          </div>
-        </div>
-
-        {/* Properties panel */}
-        <div style={{ flex: '0 0 280px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {/* Background color */}
-          <div style={panelStyle}>
-            <span style={labelStyle}>Background Color</span>
-            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-              {BG_COLORS.map(c => (
-                <button
-                  key={c}
-                  onClick={() => setBgColor(c)}
+          <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+            {/* Canvas */}
+            <div ref={containerRef} style={{ flex: '1 1 700px', minWidth: '300px' }}>
+              <div style={{ ...panelStyle, padding: '8px', display: 'inline-block', width: '100%' }}>
+                <canvas
+                  ref={canvasRef} width={CANVAS_W} height={CANVAS_H}
+                  onMouseDown={onMouseDown} onMouseMove={onMouseMove}
+                  onMouseUp={onMouseUp} onMouseLeave={onMouseUp}
                   style={{
-                    width: '28px',
-                    height: '28px',
-                    borderRadius: '6px',
-                    background: c,
-                    border: bgColor === c ? '3px solid #00ccff' : '2px solid rgba(255,255,255,0.15)',
-                    cursor: 'pointer',
-                    padding: 0,
+                    width: '100%', height: 'auto', borderRadius: '8px',
+                    cursor: dragging ? 'grabbing' : resizing ? 'nwse-resize' : 'crosshair',
+                    display: 'block',
                   }}
                 />
-              ))}
-              <input
-                type="color"
-                value={bgColor}
-                onChange={e => setBgColor(e.target.value)}
-                style={{ width: '28px', height: '28px', border: 'none', padding: 0, cursor: 'pointer', borderRadius: '6px' }}
-              />
-            </div>
-            {bgImage && (
-              <button
-                onClick={() => setBgImage(null)}
-                style={{ ...btnStyle, marginTop: '10px', fontSize: '11px', color: '#ef4444', borderColor: 'rgba(239,68,68,0.3)' }}
-              >
-                Remove BG Image
-              </button>
-            )}
-          </div>
-
-          {/* Text properties */}
-          {selected?.type === 'text' && (
-            <div style={panelStyle}>
-              <span style={labelStyle}>Text Properties</span>
-
-              <textarea
-                value={selected.text || ''}
-                onChange={e => updateSelected({ text: e.target.value })}
-                rows={2}
-                style={{
-                  width: '100%',
-                  background: '#0a0a0a',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  borderRadius: '8px',
-                  padding: '8px 12px',
-                  color: '#fff',
-                  fontSize: '14px',
-                  fontFamily: 'inherit',
-                  resize: 'vertical',
-                  marginBottom: '10px',
-                }}
-              />
-
-              {/* Font */}
-              <span style={{ ...labelStyle, marginTop: '4px' }}>Font</span>
-              <select
-                value={selected.fontFamily}
-                onChange={e => updateSelected({ fontFamily: e.target.value })}
-                style={{
-                  width: '100%',
-                  background: '#0a0a0a',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  borderRadius: '8px',
-                  padding: '8px 12px',
-                  color: '#fff',
-                  fontSize: '13px',
-                  marginBottom: '10px',
-                }}
-              >
-                {FONTS.map(f => <option key={f} value={f}>{f}</option>)}
-              </select>
-
-              {/* Font size */}
-              <span style={labelStyle}>Size: {selected.fontSize}px</span>
-              <input
-                type="range"
-                min={20}
-                max={300}
-                value={selected.fontSize || 80}
-                onChange={e => updateSelected({ fontSize: Number(e.target.value) })}
-                style={{ width: '100%', marginBottom: '10px' }}
-              />
-
-              {/* Text color */}
-              <span style={labelStyle}>Text Color</span>
-              <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', marginBottom: '10px' }}>
-                {TEXT_COLORS.map(c => (
-                  <button
-                    key={c}
-                    onClick={() => updateSelected({ fill: c })}
-                    style={{
-                      width: '24px',
-                      height: '24px',
-                      borderRadius: '5px',
-                      background: c,
-                      border: selected.fill === c ? '3px solid #00ccff' : '2px solid rgba(255,255,255,0.15)',
-                      cursor: 'pointer',
-                      padding: 0,
-                    }}
-                  />
-                ))}
-                <input
-                  type="color"
-                  value={selected.fill || '#ffffff'}
-                  onChange={e => updateSelected({ fill: e.target.value })}
-                  style={{ width: '24px', height: '24px', border: 'none', padding: 0, cursor: 'pointer', borderRadius: '5px' }}
-                />
               </div>
 
-              {/* Stroke color */}
-              <span style={labelStyle}>Outline Color</span>
-              <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', marginBottom: '10px' }}>
-                {TEXT_COLORS.map(c => (
-                  <button
-                    key={c}
-                    onClick={() => updateSelected({ strokeColor: c })}
-                    style={{
-                      width: '24px',
-                      height: '24px',
-                      borderRadius: '5px',
-                      background: c,
-                      border: selected.strokeColor === c ? '3px solid #00ccff' : '2px solid rgba(255,255,255,0.15)',
-                      cursor: 'pointer',
-                      padding: 0,
-                    }}
-                  />
-                ))}
+              <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap' }}>
+                <button onClick={addText} style={btnStyle}>+ Add Text</button>
+                <button onClick={() => uploadImage(false)} style={btnStyle}>+ Add Image</button>
+                <button onClick={() => uploadImage(true)} style={btnStyle}>+ Background Image</button>
+                {selected && (
+                  <>
+                    <button onClick={duplicateSelected} style={btnStyle}>Duplicate</button>
+                    <button onClick={moveUp} style={btnStyle}>Layer Up</button>
+                    <button onClick={moveDown} style={btnStyle}>Layer Down</button>
+                    <button onClick={deleteSelected} style={{ ...btnStyle, color: '#ef4444', borderColor: 'rgba(239,68,68,0.3)' }}>Delete</button>
+                  </>
+                )}
+                <div style={{ flex: 1 }} />
+                <button onClick={exportPng} style={btnPrimaryStyle}>Download PNG (1280x720)</button>
+              </div>
+            </div>
+
+            {/* Properties panel */}
+            <div style={{ flex: '0 0 280px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={panelStyle}>
+                <span style={labelStyle}>Background Color</span>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  {BG_COLORS.map(c => (
+                    <button key={c} onClick={() => setBgColor(c)} style={{
+                      width: '28px', height: '28px', borderRadius: '6px', background: c,
+                      border: bgColor === c ? '3px solid #00ccff' : '2px solid rgba(255,255,255,0.15)',
+                      cursor: 'pointer', padding: 0,
+                    }} />
+                  ))}
+                  <input type="color" value={bgColor} onChange={e => setBgColor(e.target.value)}
+                    style={{ width: '28px', height: '28px', border: 'none', padding: 0, cursor: 'pointer', borderRadius: '6px' }} />
+                </div>
+                {bgImage && (
+                  <button onClick={() => setBgImage(null)} style={{ ...btnStyle, marginTop: '10px', fontSize: '11px', color: '#ef4444', borderColor: 'rgba(239,68,68,0.3)' }}>
+                    Remove BG Image
+                  </button>
+                )}
               </div>
 
-              {/* Stroke width */}
-              <span style={labelStyle}>Outline Thickness: {selected.strokeWidth}px</span>
-              <input
-                type="range"
-                min={0}
-                max={20}
-                value={selected.strokeWidth || 0}
-                onChange={e => updateSelected({ strokeWidth: Number(e.target.value) })}
-                style={{ width: '100%', marginBottom: '10px' }}
-              />
+              {selected?.type === 'text' && (
+                <div style={panelStyle}>
+                  <span style={labelStyle}>Text Properties</span>
+                  <textarea value={selected.text || ''} onChange={e => updateSelected({ text: e.target.value })} rows={2}
+                    style={{ width: '100%', background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '8px 12px', color: '#fff', fontSize: '14px', fontFamily: 'inherit', resize: 'vertical', marginBottom: '10px' }} />
 
-              {/* Rotation */}
-              <span style={labelStyle}>Rotation: {selected.rotation}deg</span>
-              <input
-                type="range"
-                min={-45}
-                max={45}
-                value={selected.rotation}
-                onChange={e => updateSelected({ rotation: Number(e.target.value) })}
-                style={{ width: '100%' }}
-              />
-            </div>
-          )}
+                  <span style={{ ...labelStyle, marginTop: '4px' }}>Font</span>
+                  <select value={selected.fontFamily} onChange={e => updateSelected({ fontFamily: e.target.value })}
+                    style={{ width: '100%', background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '8px 12px', color: '#fff', fontSize: '13px', marginBottom: '10px' }}>
+                    {FONTS.map(f => <option key={f} value={f}>{f}</option>)}
+                  </select>
 
-          {/* Image properties */}
-          {selected?.type === 'image' && (
-            <div style={panelStyle}>
-              <span style={labelStyle}>Image Properties</span>
+                  <span style={labelStyle}>Size: {selected.fontSize}px</span>
+                  <input type="range" min={20} max={300} value={selected.fontSize || 80} onChange={e => updateSelected({ fontSize: Number(e.target.value) })} style={{ width: '100%', marginBottom: '10px' }} />
 
-              <span style={labelStyle}>Size: {selected.width} x {selected.height}</span>
-              <input
-                type="range"
-                min={50}
-                max={CANVAS_W}
-                value={selected.width}
-                onChange={e => {
-                  const w = Number(e.target.value);
-                  const ratio = (selected.naturalHeight || selected.height) / (selected.naturalWidth || selected.width);
-                  updateSelected({ width: w, height: Math.round(w * ratio) });
-                }}
-                style={{ width: '100%', marginBottom: '10px' }}
-              />
+                  <span style={labelStyle}>Text Color</span>
+                  <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', marginBottom: '10px' }}>
+                    {TEXT_COLORS.map(c => (
+                      <button key={c} onClick={() => updateSelected({ fill: c })} style={{
+                        width: '24px', height: '24px', borderRadius: '5px', background: c,
+                        border: selected.fill === c ? '3px solid #00ccff' : '2px solid rgba(255,255,255,0.15)',
+                        cursor: 'pointer', padding: 0,
+                      }} />
+                    ))}
+                    <input type="color" value={selected.fill || '#ffffff'} onChange={e => updateSelected({ fill: e.target.value })}
+                      style={{ width: '24px', height: '24px', border: 'none', padding: 0, cursor: 'pointer', borderRadius: '5px' }} />
+                  </div>
 
-              <span style={labelStyle}>Rotation: {selected.rotation}deg</span>
-              <input
-                type="range"
-                min={-180}
-                max={180}
-                value={selected.rotation}
-                onChange={e => updateSelected({ rotation: Number(e.target.value) })}
-                style={{ width: '100%' }}
-              />
-            </div>
-          )}
+                  <span style={labelStyle}>Outline Color</span>
+                  <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', marginBottom: '10px' }}>
+                    {TEXT_COLORS.map(c => (
+                      <button key={c} onClick={() => updateSelected({ strokeColor: c })} style={{
+                        width: '24px', height: '24px', borderRadius: '5px', background: c,
+                        border: selected.strokeColor === c ? '3px solid #00ccff' : '2px solid rgba(255,255,255,0.15)',
+                        cursor: 'pointer', padding: 0,
+                      }} />
+                    ))}
+                  </div>
 
-          {!selected && (
-            <div style={{ ...panelStyle, color: 'rgba(255,255,255,0.3)', fontSize: '13px', textAlign: 'center' }}>
-              Click an element on the canvas to edit it
-            </div>
-          )}
+                  <span style={labelStyle}>Outline Thickness: {selected.strokeWidth}px</span>
+                  <input type="range" min={0} max={20} value={selected.strokeWidth || 0} onChange={e => updateSelected({ strokeWidth: Number(e.target.value) })} style={{ width: '100%', marginBottom: '10px' }} />
 
-          {/* Keyboard shortcuts */}
-          <div style={{ ...panelStyle, padding: '12px 16px' }}>
-            <span style={labelStyle}>Tips</span>
-            <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.35)', lineHeight: 1.6 }}>
-              Drag elements to reposition<br />
-              Drag blue corner handle to resize<br />
-              Use Layer Up/Down to reorder<br />
-              Upload your face photo as an image<br />
-              Use bold text + thick outlines for MrBeast style
+                  <span style={labelStyle}>Rotation: {selected.rotation}deg</span>
+                  <input type="range" min={-45} max={45} value={selected.rotation} onChange={e => updateSelected({ rotation: Number(e.target.value) })} style={{ width: '100%' }} />
+                </div>
+              )}
+
+              {selected?.type === 'image' && (
+                <div style={panelStyle}>
+                  <span style={labelStyle}>Image Properties</span>
+                  <span style={labelStyle}>Size: {selected.width} x {selected.height}</span>
+                  <input type="range" min={50} max={CANVAS_W} value={selected.width}
+                    onChange={e => {
+                      const w = Number(e.target.value);
+                      const ratio = (selected.naturalHeight || selected.height) / (selected.naturalWidth || selected.width);
+                      updateSelected({ width: w, height: Math.round(w * ratio) });
+                    }} style={{ width: '100%', marginBottom: '10px' }} />
+                  <span style={labelStyle}>Rotation: {selected.rotation}deg</span>
+                  <input type="range" min={-180} max={180} value={selected.rotation} onChange={e => updateSelected({ rotation: Number(e.target.value) })} style={{ width: '100%' }} />
+                </div>
+              )}
+
+              {!selected && (
+                <div style={{ ...panelStyle, color: 'rgba(255,255,255,0.3)', fontSize: '13px', textAlign: 'center' }}>
+                  Click an element on the canvas to edit it
+                </div>
+              )}
+
+              <div style={{ ...panelStyle, padding: '12px 16px' }}>
+                <span style={labelStyle}>Tips</span>
+                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.35)', lineHeight: 1.6 }}>
+                  Drag elements to reposition<br />
+                  Drag blue corner handle to resize<br />
+                  Use Layer Up/Down to reorder<br />
+                  Upload your face photo as an image<br />
+                  Use bold text + thick outlines for MrBeast style
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
+        </>
+      )}
     </div>
   );
 }

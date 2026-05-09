@@ -1,6 +1,8 @@
 import { Router, type IRouter } from "express";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
-import { generateImageBuffer } from "@workspace/integrations-openai-ai-server/image";
+import { generateImageBuffer, editImages } from "@workspace/integrations-openai-ai-server/image";
+import { writeFileSync, unlinkSync, mkdtempSync } from "fs";
+import { tmpdir } from "os";
 import { fetchTopYouTubeVideos } from "../../utils/youtube.js";
 import { execFile } from "child_process";
 import { promisify } from "util";
@@ -458,6 +460,56 @@ Clean composition, no watermarks, no borders. Text must be perfectly legible, la
   } catch (err) {
     req.log.error({ err }, "Thumbnail image generation failed");
     res.status(500).json({ error: "Thumbnail image generation failed" });
+  }
+});
+
+router.post("/tools/thumbnail-ai", async (req, res): Promise<void> => {
+  const { prompt, referenceImage, aspectRatio = "16:9" } = req.body as {
+    prompt: string;
+    referenceImage?: string; // base64 encoded image
+    aspectRatio?: "16:9" | "9:16";
+  };
+  if (!prompt?.trim()) {
+    res.status(400).json({ error: "prompt is required" });
+    return;
+  }
+
+  const isPortrait = aspectRatio === "9:16";
+  const imageSize = isPortrait ? "1024x1536" : "1536x1024";
+
+  const fullPrompt = `Create a viral YouTube ${isPortrait ? "Shorts cover" : "thumbnail"} image.
+${prompt}
+Style: MrBeast-level production quality. Bold, high contrast, eye-catching at small size.
+Requirements:
+- Professional YouTube thumbnail composition
+- ${isPortrait ? "9:16 vertical portrait, 1080x1920" : "16:9 horizontal landscape, 1280x720"}
+- Dramatic lighting and vivid colors
+- If text is included, make it HUGE, bold, with thick outlines
+- Clean composition, no watermarks, no borders
+- Designed to maximize click-through rate`;
+
+  try {
+    let buffer: Buffer;
+
+    if (referenceImage) {
+      // Use image editing - take the reference and transform it into a thumbnail
+      const tmpDir = mkdtempSync(path.join(tmpdir(), "thumb-"));
+      const tmpFile = path.join(tmpDir, "ref.png");
+      try {
+        const imgBuffer = Buffer.from(referenceImage, "base64");
+        writeFileSync(tmpFile, imgBuffer);
+        buffer = await editImages([tmpFile], fullPrompt);
+      } finally {
+        try { unlinkSync(tmpFile); } catch {}
+      }
+    } else {
+      buffer = await generateImageBuffer(fullPrompt, imageSize);
+    }
+
+    res.json({ image: buffer.toString("base64") });
+  } catch (err) {
+    req.log.error({ err }, "AI thumbnail generation failed");
+    res.status(500).json({ error: "AI thumbnail generation failed" });
   }
 });
 
