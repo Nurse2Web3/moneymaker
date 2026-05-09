@@ -463,11 +463,143 @@ Clean composition, no watermarks, no borders. Text must be perfectly legible, la
   }
 });
 
+// Claude prompt enhancer — takes a rough idea and writes a pro image gen prompt
+async function enhancePromptWithClaude(rawPrompt: string, aspectRatio: string): Promise<string> {
+  const isPortrait = aspectRatio === "9:16";
+  const msg = await anthropic.messages.create({
+    model: "claude-sonnet-4-20250514",
+    max_tokens: 500,
+    messages: [{
+      role: "user",
+      content: `You are a YouTube thumbnail prompt engineer. Take this rough idea and write a detailed, vivid image generation prompt that will produce a viral MrBeast-level thumbnail.
+
+Rough idea: "${rawPrompt}"
+Aspect ratio: ${isPortrait ? "9:16 portrait (Shorts)" : "16:9 landscape (YouTube)"}
+
+Rules:
+- Be extremely specific about composition, colors, lighting, expressions
+- Include dramatic lighting, high contrast, bold colors
+- If the user mentions text, describe it as HUGE bold text with thick outlines
+- Describe the scene like a movie director — camera angle, depth of field, emotion
+- Keep it under 200 words
+- Output ONLY the prompt, nothing else`,
+    }],
+  });
+  const block = msg.content[0];
+  return block.type === "text" ? block.text : rawPrompt;
+}
+
+// Higgsfield image generation
+async function generateWithHiggsfield(prompt: string, aspectRatio: string): Promise<Buffer> {
+  const isPortrait = aspectRatio === "9:16";
+  const apiKey = process.env.HIGGSFIELD_API_KEY;
+  if (!apiKey) throw new Error("HIGGSFIELD_API_KEY not configured");
+
+  // Create generation
+  const createRes = await fetch("https://api.higgsfield.ai/v1/generations", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      task: "text-to-image",
+      model: "flux",
+      prompt,
+      width: isPortrait ? 1080 : 1280,
+      height: isPortrait ? 1920 : 720,
+      steps: 50,
+    }),
+  });
+  if (!createRes.ok) {
+    const err = await createRes.text();
+    throw new Error(`Higgsfield create failed: ${err}`);
+  }
+  const { id } = await createRes.json() as { id: string };
+
+  // Poll for completion (max 60s)
+  for (let i = 0; i < 30; i++) {
+    await new Promise(r => setTimeout(r, 2000));
+    const statusRes = await fetch(`https://api.higgsfield.ai/v1/generations/${id}`, {
+      headers: { "Authorization": `Bearer ${apiKey}` },
+    });
+    if (!statusRes.ok) continue;
+    const status = await statusRes.json() as { status: string; output?: { url?: string }; result?: { url?: string } };
+    if (status.status === "completed" || status.status === "succeeded") {
+      const imageUrl = status.output?.url || status.result?.url;
+      if (!imageUrl) throw new Error("Higgsfield: no output URL");
+      const imgRes = await fetch(imageUrl);
+      const arrayBuf = await imgRes.arrayBuffer();
+      return Buffer.from(arrayBuf);
+    }
+    if (status.status === "failed") throw new Error("Higgsfield generation failed");
+  }
+  throw new Error("Higgsfield generation timed out");
+}
+
+// Galaxy.ai image generation
+async function generateWithGalaxy(prompt: string, aspectRatio: string): Promise<Buffer> {
+  const apiKey = process.env.GALAXY_API_KEY;
+  if (!apiKey) throw new Error("GALAXY_API_KEY not configured");
+
+  // Start a run with image generation
+  const createRes = await fetch("https://api.galaxy.ai/api/v1/runs", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      prompt,
+      type: "image",
+      aspectRatio,
+    }),
+  });
+  if (!createRes.ok) {
+    const err = await createRes.text();
+    throw new Error(`Galaxy create failed: ${err}`);
+  }
+  const { id, image, url } = await createRes.json() as { id?: string; image?: string; url?: string };
+
+  // If image returned directly (base64)
+  if (image) return Buffer.from(image, "base64");
+
+  // If URL returned directly
+  if (url && !id) {
+    const imgRes = await fetch(url);
+    return Buffer.from(await imgRes.arrayBuffer());
+  }
+
+  // Poll for completion
+  if (id) {
+    for (let i = 0; i < 30; i++) {
+      await new Promise(r => setTimeout(r, 2000));
+      const statusRes = await fetch(`https://api.galaxy.ai/api/v1/runs/${id}`, {
+        headers: { "Authorization": `Bearer ${apiKey}` },
+      });
+      if (!statusRes.ok) continue;
+      const status = await statusRes.json() as { status: string; output?: { url?: string; image?: string } };
+      if (status.status === "completed" || status.status === "succeeded") {
+        if (status.output?.image) return Buffer.from(status.output.image, "base64");
+        if (status.output?.url) {
+          const imgRes = await fetch(status.output.url);
+          return Buffer.from(await imgRes.arrayBuffer());
+        }
+        throw new Error("Galaxy: no output found");
+      }
+      if (status.status === "failed") throw new Error("Galaxy generation failed");
+    }
+  }
+  throw new Error("Galaxy generation timed out");
+}
+
 router.post("/tools/thumbnail-ai", async (req, res): Promise<void> => {
-  const { prompt, referenceImage, aspectRatio = "16:9" } = req.body as {
+  const { prompt, referenceImage, aspectRatio = "16:9", provider = "openai", claudeEnhance = false } = req.body as {
     prompt: string;
-    referenceImage?: string; // base64 encoded image
+    referenceImage?: string;
     aspectRatio?: "16:9" | "9:16";
+    provider?: "openai" | "higgsfield" | "galaxy";
+    claudeEnhance?: boolean;
   };
   if (!prompt?.trim()) {
     res.status(400).json({ error: "prompt is required" });
@@ -477,7 +609,13 @@ router.post("/tools/thumbnail-ai", async (req, res): Promise<void> => {
   const isPortrait = aspectRatio === "9:16";
   const imageSize = isPortrait ? "1024x1536" : "1536x1024";
 
-  const fullPrompt = `Create a viral YouTube ${isPortrait ? "Shorts cover" : "thumbnail"} image.
+  try {
+    // Step 1: Optionally enhance prompt with Claude
+    let finalPrompt: string;
+    if (claudeEnhance) {
+      finalPrompt = await enhancePromptWithClaude(prompt, aspectRatio);
+    } else {
+      finalPrompt = `Create a viral YouTube ${isPortrait ? "Shorts cover" : "thumbnail"} image.
 ${prompt}
 Style: MrBeast-level production quality. Bold, high contrast, eye-catching at small size.
 Requirements:
@@ -487,29 +625,37 @@ Requirements:
 - If text is included, make it HUGE, bold, with thick outlines
 - Clean composition, no watermarks, no borders
 - Designed to maximize click-through rate`;
+    }
 
-  try {
+    // Step 2: Generate with chosen provider
     let buffer: Buffer;
 
-    if (referenceImage) {
-      // Use image editing - take the reference and transform it into a thumbnail
-      const tmpDir = mkdtempSync(path.join(tmpdir(), "thumb-"));
-      const tmpFile = path.join(tmpDir, "ref.png");
-      try {
-        const imgBuffer = Buffer.from(referenceImage, "base64");
-        writeFileSync(tmpFile, imgBuffer);
-        buffer = await editImages([tmpFile], fullPrompt);
-      } finally {
-        try { unlinkSync(tmpFile); } catch {}
-      }
+    if (provider === "higgsfield") {
+      buffer = await generateWithHiggsfield(finalPrompt, aspectRatio);
+    } else if (provider === "galaxy") {
+      buffer = await generateWithGalaxy(finalPrompt, aspectRatio);
     } else {
-      buffer = await generateImageBuffer(fullPrompt, imageSize);
+      // OpenAI (default)
+      if (referenceImage) {
+        const tmpDir = mkdtempSync(path.join(tmpdir(), "thumb-"));
+        const tmpFile = path.join(tmpDir, "ref.png");
+        try {
+          const imgBuffer = Buffer.from(referenceImage, "base64");
+          writeFileSync(tmpFile, imgBuffer);
+          buffer = await editImages([tmpFile], finalPrompt);
+        } finally {
+          try { unlinkSync(tmpFile); } catch {}
+        }
+      } else {
+        buffer = await generateImageBuffer(finalPrompt, imageSize);
+      }
     }
 
     res.json({ image: buffer.toString("base64") });
   } catch (err) {
     req.log.error({ err }, "AI thumbnail generation failed");
-    res.status(500).json({ error: "AI thumbnail generation failed" });
+    const message = err instanceof Error ? err.message : "AI thumbnail generation failed";
+    res.status(500).json({ error: message });
   }
 });
 
