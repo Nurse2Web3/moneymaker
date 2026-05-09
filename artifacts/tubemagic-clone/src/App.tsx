@@ -16,6 +16,7 @@ import TagGenerator from './components/TagGenerator';
 import ScriptImprover from './components/ScriptImprover';
 import HookGenerator from './components/HookGenerator';
 import ThumbnailGenerator from './components/ThumbnailGenerator';
+import ThumbnailMaker from './components/ThumbnailMaker';
 import NicheAnalyzer from './components/NicheAnalyzer';
 import VideoAnalyzer from './components/VideoAnalyzer';
 import Teleprompter from './components/Teleprompter';
@@ -34,6 +35,7 @@ type Page =
   | 'description-generator'
   | 'tag-generator'
   | 'thumbnail-generator'
+  | 'thumbnail-maker'
   | 'niche-analyzer'
   | 'video-analyzer'
   | 'teleprompter'
@@ -70,6 +72,7 @@ const TOOL_GROUPS = [
       { id: 'title-generator' as Page, label: 'Title Generator', icon: '✏️', desc: '5 viral titles instantly' },
       { id: 'description-generator' as Page, label: 'Description', icon: '📄', desc: 'SEO description + timestamps' },
       { id: 'tag-generator' as Page, label: 'Tags', icon: '🏷️', desc: '20 high-SEO tags' },
+      { id: 'thumbnail-maker' as Page, label: 'Thumbnail Maker', icon: '🎨', desc: 'Drag-and-drop MrBeast-style editor' },
       { id: 'thumbnail-generator' as Page, label: 'Thumbnail Text', icon: '🖼️', desc: 'High-CTR text overlay ideas' },
     ],
   },
@@ -230,6 +233,7 @@ export default function App() {
         {page === 'title-generator' && <TitleGenerator />}
         {page === 'description-generator' && <DescriptionGenerator />}
         {page === 'tag-generator' && <TagGenerator />}
+        {page === 'thumbnail-maker' && <ThumbnailMaker />}
         {page === 'thumbnail-generator' && <ThumbnailGenerator />}
         {page === 'channel-cloner' && <ChannelCloner />}
         {page === 'video-maker' && <VideoMaker />}
