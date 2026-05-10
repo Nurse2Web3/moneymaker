@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { useSavedItems } from '../lib/savedItems';
 
 interface ChannelData {
   id: string;
@@ -301,7 +302,13 @@ function DeepAnalysisCard({ analysis }: { analysis: DeepAnalysis }) {
   );
 }
 
-function CloneIdeasCard({ ideas }: { ideas: CloneIdea[] }) {
+function CloneIdeasCard({ ideas, dna, channelName, onGenerateScript }: {
+  ideas: CloneIdea[];
+  dna: ChannelDNA | null;
+  channelName: string;
+  onGenerateScript: (idea: CloneIdea) => void;
+}) {
+  const { saveItem, isSaved } = useSavedItems();
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const formatColors: Record<string, string> = {
     storytelling: '#a78bfa', listicle: '#34d399', tutorial: '#60a5fa',
@@ -315,35 +322,65 @@ function CloneIdeasCard({ ideas }: { ideas: CloneIdea[] }) {
     setTimeout(() => setCopiedIdx(null), 2000);
   }
 
+  function saveIdea(idea: CloneIdea) {
+    const content = `Title: ${idea.title}\nThumbnail Text: ${idea.thumbnailText}\nFormat: ${idea.format}\nConcept: ${idea.concept}`;
+    saveItem({
+      type: 'clone-idea',
+      label: idea.title,
+      content,
+      meta: `Cloned from ${channelName} | ${idea.format}`,
+    });
+  }
+
+  const btnSmall: React.CSSProperties = {
+    padding: '5px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 600,
+    border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)',
+    color: 'rgba(255,255,255,0.4)', cursor: 'pointer',
+  };
+
   return (
     <div style={{ marginBottom: '20px' }}>
       <div style={{ fontSize: '16px', fontWeight: 700, color: '#fff', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
         <span>💡</span> 10 Clone-Ready Video Ideas
       </div>
       <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.35)', marginBottom: '14px' }}>
-        Based on gaps, patterns, and winning formulas found in the research
+        Based on gaps, patterns, and winning formulas — save ideas or generate scripts + thumbnails
       </div>
       {ideas.map((idea, i) => {
         const fmtColor = formatColors[idea.format?.toLowerCase()] || '#60a5fa';
+        const ideaContent = `Title: ${idea.title}\nThumbnail Text: ${idea.thumbnailText}\nFormat: ${idea.format}\nConcept: ${idea.concept}`;
+        const saved = isSaved(ideaContent, 'clone-idea');
         return (
           <div key={i} style={{ background: '#111', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '16px 20px', marginBottom: '8px' }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                  <span style={{ fontSize: '12px', fontWeight: 700, color: 'rgba(255,255,255,0.2)', minWidth: '20px' }}>{i + 1}</span>
-                  <span style={{ fontSize: '11px', fontWeight: 600, color: fmtColor, background: `${fmtColor}15`, padding: '2px 8px', borderRadius: '4px', border: `1px solid ${fmtColor}30` }}>{idea.format}</span>
-                </div>
-                <div style={{ fontSize: '15px', fontWeight: 600, color: '#fff', marginBottom: '4px' }}>{idea.title}</div>
-                <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', marginBottom: '6px' }}>{idea.concept}</div>
-                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.3)' }}>
-                  Thumbnail text: <strong style={{ color: 'rgba(255,255,255,0.6)' }}>{idea.thumbnailText}</strong>
-                </div>
+            <div style={{ marginBottom: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: 'rgba(255,255,255,0.2)', minWidth: '20px' }}>{i + 1}</span>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: fmtColor, background: `${fmtColor}15`, padding: '2px 8px', borderRadius: '4px', border: `1px solid ${fmtColor}30` }}>{idea.format}</span>
               </div>
+              <div style={{ fontSize: '15px', fontWeight: 600, color: '#fff', marginBottom: '4px' }}>{idea.title}</div>
+              <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', marginBottom: '6px' }}>{idea.concept}</div>
+              <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.3)' }}>
+                Thumbnail text: <strong style={{ color: 'rgba(255,255,255,0.6)' }}>{idea.thumbnailText}</strong>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              <button
+                onClick={() => onGenerateScript(idea)}
+                style={{ ...btnSmall, background: 'rgba(167,139,250,0.1)', color: '#a78bfa', borderColor: 'rgba(167,139,250,0.3)' }}
+              >
+                Generate Script
+              </button>
+              <button
+                onClick={() => saveIdea(idea)}
+                style={{ ...btnSmall, background: saved ? 'rgba(251,191,36,0.1)' : 'rgba(255,255,255,0.05)', color: saved ? '#fbbf24' : 'rgba(255,255,255,0.4)', borderColor: saved ? 'rgba(251,191,36,0.3)' : 'rgba(255,255,255,0.1)' }}
+              >
+                {saved ? 'Saved' : 'Save Idea'}
+              </button>
               <button
                 onClick={() => copyIdea(idea, i)}
-                style={{ flexShrink: 0, padding: '5px 12px', borderRadius: '6px', fontSize: '12px', background: copiedIdx === i ? '#22c55e20' : 'rgba(255,255,255,0.05)', color: copiedIdx === i ? '#22c55e' : 'rgba(255,255,255,0.4)', border: `1px solid ${copiedIdx === i ? '#22c55e40' : 'rgba(255,255,255,0.1)'}`, cursor: 'pointer' }}
+                style={{ ...btnSmall, background: copiedIdx === i ? '#22c55e20' : 'rgba(255,255,255,0.05)', color: copiedIdx === i ? '#22c55e' : 'rgba(255,255,255,0.4)', borderColor: copiedIdx === i ? '#22c55e40' : 'rgba(255,255,255,0.1)' }}
               >
-                {copiedIdx === i ? '✓' : 'Copy'}
+                {copiedIdx === i ? 'Copied' : 'Copy'}
               </button>
             </div>
           </div>
@@ -398,6 +435,9 @@ export default function ChannelCloner() {
   const [script, setScript] = useState('');
   const [done, setDone] = useState(false);
   const [error, setError] = useState('');
+  const [ideaScript, setIdeaScript] = useState('');
+  const [ideaScriptLoading, setIdeaScriptLoading] = useState(false);
+  const [ideaScriptTitle, setIdeaScriptTitle] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
 
   function reset() {
@@ -411,6 +451,58 @@ export default function ChannelCloner() {
     setScript('');
     setDone(false);
     setError('');
+  }
+
+  async function generateIdeaScript(idea: CloneIdea) {
+    if (!dna) return;
+    setIdeaScript('');
+    setIdeaScriptLoading(true);
+    setIdeaScriptTitle(idea.title);
+    try {
+      const res = await fetch('/api/scripts/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          topic: `${idea.title} — ${idea.concept}`,
+          videoLength: 1500,
+          tensionLevel: 'medium',
+          channelStyle: `Write in this channel's exact style:
+Hook Style: ${dna.hookStyle}
+Tone: ${dna.tone}
+Pacing: ${dna.pacing}
+Content Structure: ${dna.contentStructure}
+Audience Relationship: ${dna.audienceRelationship}`,
+        }),
+      });
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let buf = '';
+      let scriptAccum = '';
+      while (true) {
+        const { done: streamDone, value } = await reader.read();
+        if (streamDone) break;
+        buf += decoder.decode(value, { stream: true });
+        const lines = buf.split('\n');
+        buf = lines.pop() ?? '';
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          try {
+            const event = JSON.parse(line.slice(6)) as { content?: string; done?: boolean; error?: string };
+            if (event.content) {
+              scriptAccum += event.content;
+              setIdeaScript(scriptAccum);
+            }
+            if (event.error) {
+              setIdeaScript(`Error: ${event.error}`);
+            }
+          } catch { /* skip */ }
+        }
+      }
+    } catch {
+      setIdeaScript('Script generation failed. Try again.');
+    } finally {
+      setIdeaScriptLoading(false);
+    }
   }
 
   function addStatus(msg: string) {
@@ -597,7 +689,27 @@ export default function ChannelCloner() {
       {deepAnalysis && <DeepAnalysisCard analysis={deepAnalysis} />}
 
       {/* Clone Ideas */}
-      {cloneIdeas.length > 0 && <CloneIdeasCard ideas={cloneIdeas} />}
+      {cloneIdeas.length > 0 && (
+        <CloneIdeasCard
+          ideas={cloneIdeas}
+          dna={dna}
+          channelName={channel?.name || ''}
+          onGenerateScript={generateIdeaScript}
+        />
+      )}
+
+      {/* Idea Script */}
+      {(ideaScriptLoading || ideaScript) && (
+        <div style={{ marginBottom: '20px' }}>
+          {ideaScriptLoading && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px', background: '#111', borderRadius: '12px', border: '1px solid rgba(167,139,250,0.2)', marginBottom: '10px' }}>
+              <div style={{ width: '14px', height: '14px', border: '2px solid rgba(167,139,250,0.2)', borderTop: '2px solid #a78bfa', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+              <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)' }}>Writing script for "{ideaScriptTitle}"...</span>
+            </div>
+          )}
+          {ideaScript && <ScriptDisplay text={ideaScript} />}
+        </div>
+      )}
 
       {/* Niche suggestions */}
       {ideas.length > 0 && (

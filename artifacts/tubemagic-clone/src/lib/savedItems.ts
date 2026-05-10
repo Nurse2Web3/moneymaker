@@ -10,7 +10,8 @@ export type SavedItemType =
   | 'description'
   | 'tags'
   | 'thumbnail'
-  | 'channel-dna';
+  | 'channel-dna'
+  | 'clone-idea';
 
 export interface SavedItem {
   id: string;
@@ -33,6 +34,7 @@ export const TYPE_META: Record<SavedItemType, { label: string; icon: string; col
   'tags':            { label: 'Tags',             icon: '🏷️', color: '#fb923c' },
   'thumbnail':       { label: 'Thumbnail',        icon: '🖼️', color: '#f472b6' },
   'channel-dna':     { label: 'Channel DNA',      icon: '🧬', color: '#a3e635' },
+  'clone-idea':      { label: 'Clone Idea',       icon: '💡', color: '#fbbf24' },
 };
 
 const STORAGE_KEY = 'moneymaker_saved_items';
