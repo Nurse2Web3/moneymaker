@@ -26,8 +26,39 @@ type Template = {
   elements: Omit<CanvasElement, 'id'>[];
 };
 
-type Tab = 'editor' | 'ai';
+type Tab = 'editor' | 'ai' | 'brands';
 type Ratio = '16:9' | '9:16';
+
+type BrandTemplate = {
+  id: string;
+  name: string;
+  style: string;
+  composition: string;
+  mood: string;
+  refImage: string | null; // base64
+  refPreview: string | null; // data URL for display
+  createdAt: number;
+};
+
+const EXPRESSIONS = [
+  { label: 'Worried', desc: 'deeply worried and concerned, eyebrows furrowed' },
+  { label: 'Shocked', desc: 'extremely shocked, mouth open wide, eyes wide' },
+  { label: 'Happy', desc: 'warm encouraging smile, eyes bright with excitement' },
+  { label: 'Serious', desc: 'serious and focused, direct intense eye contact' },
+  { label: 'Surprised', desc: 'pleasantly surprised, raised eyebrows, slight smile' },
+  { label: 'Angry', desc: 'frustrated and angry, intense glare' },
+];
+
+function loadBrandTemplates(): BrandTemplate[] {
+  try {
+    const stored = localStorage.getItem('thumbnail-brand-templates');
+    return stored ? JSON.parse(stored) : [];
+  } catch { return []; }
+}
+
+function saveBrandTemplates(templates: BrandTemplate[]) {
+  localStorage.setItem('thumbnail-brand-templates', JSON.stringify(templates));
+}
 
 const CANVAS_W = 1280;
 const CANVAS_H = 720;
@@ -111,7 +142,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 }
 
 // ─── AI Generator Panel ───────────────────────────────────────────────
-function AIGenerator({ onImageGenerated }: { onImageGenerated: (src: string) => void }) {
+function AIGenerator({ onImageGenerated, onSaveAsTemplate }: { onImageGenerated: (src: string) => void; onSaveAsTemplate: (prompt: string, refImage: string | null, refPreview: string | null) => void }) {
   const [prompt, setPrompt] = useState('');
   const [ratio, setRatio] = useState<Ratio>('16:9');
   const [claudeEnhance, setClaudeEnhance] = useState(true);
@@ -341,12 +372,15 @@ function AIGenerator({ onImageGenerated }: { onImageGenerated: (src: string) => 
                     width: '100%', borderRadius: '8px', display: 'block', marginBottom: '10px',
                   }}
                 />
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   <button onClick={() => downloadImage(src)} style={{ ...btnStyle, background: 'rgba(34,197,94,0.1)', color: '#22c55e', borderColor: 'rgba(34,197,94,0.3)' }}>
                     Download PNG
                   </button>
                   <button onClick={() => onImageGenerated(src)} style={{ ...btnStyle, background: 'rgba(0,204,255,0.1)', color: '#00ccff', borderColor: 'rgba(0,204,255,0.3)' }}>
                     Send to Editor
+                  </button>
+                  <button onClick={() => onSaveAsTemplate(prompt, refImage, refPreview)} style={{ ...btnStyle, background: 'rgba(167,139,250,0.1)', color: '#a78bfa', borderColor: 'rgba(167,139,250,0.3)' }}>
+                    Save as Brand Template
                   </button>
                 </div>
               </div>
@@ -366,6 +400,143 @@ function AIGenerator({ onImageGenerated }: { onImageGenerated: (src: string) => 
   );
 }
 
+// ─── Brand Templates Panel ────────────────────────────────────────────
+function BrandTemplatesPanel({ templates, onDelete, onGenerate }: {
+  templates: BrandTemplate[];
+  onDelete: (id: string) => void;
+  onGenerate: (template: BrandTemplate, title: string, expression: string) => void;
+}) {
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [title, setTitle] = useState('');
+  const [expression, setExpression] = useState(EXPRESSIONS[0].label);
+
+  const panelStyle: React.CSSProperties = {
+    background: '#111', border: '1px solid rgba(255,255,255,0.08)',
+    borderRadius: '12px', padding: '16px',
+  };
+  const labelStyle: React.CSSProperties = {
+    fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.35)',
+    textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '8px', display: 'block',
+  };
+  const btnStyle: React.CSSProperties = {
+    padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 600,
+    border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)',
+    color: 'rgba(255,255,255,0.7)', cursor: 'pointer',
+  };
+
+  if (templates.length === 0) {
+    return (
+      <div style={{ ...panelStyle, textAlign: 'center', padding: '60px 20px', maxWidth: '600px', margin: '0 auto' }}>
+        <div style={{ fontSize: '48px', marginBottom: '12px' }}>BRAND</div>
+        <div style={{ fontSize: '16px', color: 'rgba(255,255,255,0.4)', marginBottom: '8px' }}>No brand templates yet</div>
+        <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.25)' }}>
+          Go to the AI Generator tab, create a thumbnail you love, then click "Save as Brand Template" to save the style for future episodes.
+        </div>
+      </div>
+    );
+  }
+
+  const active = templates.find(t => t.id === activeId);
+
+  return (
+    <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+      {/* Template list */}
+      <div style={{ flex: '1 1 300px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <span style={labelStyle}>Your Brand Templates</span>
+        {templates.map(t => (
+          <div
+            key={t.id}
+            onClick={() => { setActiveId(t.id); setTitle(''); }}
+            style={{
+              ...panelStyle,
+              cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: '12px',
+              border: activeId === t.id ? '1px solid rgba(167,139,250,0.4)' : '1px solid rgba(255,255,255,0.08)',
+              background: activeId === t.id ? 'rgba(167,139,250,0.05)' : '#111',
+            }}
+          >
+            {t.refPreview && (
+              <img src={t.refPreview} alt="" style={{ width: '50px', height: '50px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }} />
+            )}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: '15px', fontWeight: 600, color: '#fff', marginBottom: '2px' }}>{t.name}</div>
+              <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.3)' }}>{t.mood}</div>
+            </div>
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(t.id); if (activeId === t.id) setActiveId(null); }}
+              style={{ ...btnStyle, fontSize: '11px', padding: '4px 8px', color: '#ef4444', borderColor: 'rgba(239,68,68,0.3)' }}
+            >
+              Delete
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {/* Generate from template */}
+      {active && (
+        <div style={{ flex: '1 1 400px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={panelStyle}>
+            <span style={labelStyle}>Generate from "{active.name}"</span>
+
+            <span style={{ ...labelStyle, marginTop: '12px' }}>Episode Title / Topic</span>
+            <input
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              placeholder="e.g. Why Your Baby Cries When You Leave"
+              style={{
+                width: '100%', background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '8px', padding: '12px', color: '#fff', fontSize: '15px',
+                fontFamily: 'inherit', marginBottom: '14px',
+              }}
+            />
+
+            <span style={labelStyle}>Expression</span>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '14px' }}>
+              {EXPRESSIONS.map(ex => (
+                <button
+                  key={ex.label}
+                  onClick={() => setExpression(ex.label)}
+                  style={{
+                    ...btnStyle, fontSize: '12px', padding: '6px 12px',
+                    background: expression === ex.label ? 'rgba(167,139,250,0.1)' : 'rgba(255,255,255,0.05)',
+                    color: expression === ex.label ? '#a78bfa' : 'rgba(255,255,255,0.5)',
+                    borderColor: expression === ex.label ? 'rgba(167,139,250,0.3)' : 'rgba(255,255,255,0.12)',
+                  }}
+                >
+                  {ex.label}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => { if (title.trim()) onGenerate(active, title, expression); }}
+              disabled={!title.trim()}
+              style={{
+                width: '100%', padding: '14px', borderRadius: '10px', fontWeight: 700,
+                fontSize: '16px', border: 'none',
+                cursor: title.trim() ? 'pointer' : 'not-allowed',
+                background: title.trim() ? '#a78bfa' : '#1a1a1a',
+                color: title.trim() ? '#fff' : 'rgba(255,255,255,0.3)',
+              }}
+            >
+              Generate Episode Thumbnail
+            </button>
+          </div>
+
+          <div style={{ ...panelStyle, padding: '12px 16px' }}>
+            <span style={labelStyle}>Saved Style</span>
+            <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.35)', lineHeight: 1.6 }}>
+              <strong style={{ color: 'rgba(255,255,255,0.5)' }}>Composition:</strong> {active.composition}<br />
+              <strong style={{ color: 'rgba(255,255,255,0.5)' }}>Mood:</strong> {active.mood}<br />
+              <strong style={{ color: 'rgba(255,255,255,0.5)' }}>Style:</strong> {active.style}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main Thumbnail Maker ─────────────────────────────────────────────
 export default function ThumbnailMaker() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -373,6 +544,10 @@ export default function ThumbnailMaker() {
   const imageCache = useRef<Map<string, HTMLImageElement>>(new Map());
 
   const [tab, setTab] = useState<Tab>('ai');
+  const [brandTemplates, setBrandTemplates] = useState<BrandTemplate[]>(loadBrandTemplates);
+  const [brandLoading, setBrandLoading] = useState(false);
+  const [brandResult, setBrandResult] = useState<string | null>(null);
+  const [brandError, setBrandError] = useState('');
   const [bgColor, setBgColor] = useState('#ff0000');
   const [bgImage, setBgImage] = useState<string | null>(null);
   const [elements, setElements] = useState<CanvasElement[]>([]);
@@ -388,6 +563,70 @@ export default function ThumbnailMaker() {
   function handleAIImageToEditor(src: string) {
     setBgImage(src);
     setTab('editor');
+  }
+
+  // Brand template management
+  function handleSaveAsTemplate(stylePrompt: string, refImage: string | null, refPreview: string | null) {
+    const name = window.prompt('Name this brand template (e.g. "BrainyBeginningsLab"):');
+    if (!name?.trim()) return;
+    const mood = window.prompt('Describe the mood (e.g. "Dark moody, emotional, warm tones"):') || 'Professional YouTube thumbnail';
+    const composition = window.prompt('Describe the layout (e.g. "Host on right, subject on left, bold text center"):') || 'Standard thumbnail composition';
+
+    const template: BrandTemplate = {
+      id: `brand-${Date.now()}`,
+      name: name.trim(),
+      style: stylePrompt,
+      composition,
+      mood,
+      refImage,
+      refPreview,
+      createdAt: Date.now(),
+    };
+    const updated = [...brandTemplates, template];
+    setBrandTemplates(updated);
+    saveBrandTemplates(updated);
+    setTab('brands');
+  }
+
+  function handleDeleteTemplate(id: string) {
+    const updated = brandTemplates.filter(t => t.id !== id);
+    setBrandTemplates(updated);
+    saveBrandTemplates(updated);
+  }
+
+  async function handleGenerateFromTemplate(template: BrandTemplate, title: string, expression: string) {
+    setBrandLoading(true);
+    setBrandError('');
+    setBrandResult(null);
+    const expr = EXPRESSIONS.find(e => e.label === expression);
+    try {
+      const res = await fetch('/api/tools/thumbnail-ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: `Create a thumbnail matching this exact style: ${template.style}
+
+New episode: "${title}"
+
+The host/presenter should have this expression: ${expr?.desc || expression}
+
+Keep the SAME composition: ${template.composition}
+Keep the SAME mood: ${template.mood}
+Change the text to match the new episode title.
+Make the text bold, huge, with thick outlines — readable at small size.`,
+          referenceImage: template.refImage || undefined,
+          aspectRatio: '16:9' as const,
+          claudeEnhance: true,
+        }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setBrandResult(`data:image/png;base64,${data.image}`);
+    } catch {
+      setBrandError('Generation failed. Try again.');
+    } finally {
+      setBrandLoading(false);
+    }
   }
 
   useEffect(() => {
@@ -691,6 +930,9 @@ export default function ThumbnailMaker() {
         <button onClick={() => setTab('ai')} style={tabStyle(tab === 'ai')}>
           AI Generator
         </button>
+        <button onClick={() => setTab('brands')} style={tabStyle(tab === 'brands')}>
+          Brand Templates {brandTemplates.length > 0 ? `(${brandTemplates.length})` : ''}
+        </button>
         <button onClick={() => setTab('editor')} style={tabStyle(tab === 'editor')}>
           Manual Editor
         </button>
@@ -698,7 +940,45 @@ export default function ThumbnailMaker() {
 
       {/* AI Tab */}
       {tab === 'ai' && (
-        <AIGenerator onImageGenerated={handleAIImageToEditor} />
+        <AIGenerator onImageGenerated={handleAIImageToEditor} onSaveAsTemplate={handleSaveAsTemplate} />
+      )}
+
+      {/* Brand Templates Tab */}
+      {tab === 'brands' && (
+        <div>
+          <BrandTemplatesPanel
+            templates={brandTemplates}
+            onDelete={handleDeleteTemplate}
+            onGenerate={handleGenerateFromTemplate}
+          />
+          {brandLoading && (
+            <div style={{ textAlign: 'center', padding: '40px 20px', marginTop: '16px', background: '#111', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <div style={{ width: '28px', height: '28px', border: '3px solid rgba(255,255,255,0.1)', borderTop: '3px solid #a78bfa', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
+              <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px' }}>Generating from brand template...</div>
+            </div>
+          )}
+          {brandError && (
+            <div style={{ marginTop: '16px', background: '#ff4d4d15', border: '1px solid #ff4d4d30', borderRadius: '8px', padding: '10px 14px', color: '#ff4d4d', fontSize: '13px' }}>
+              {brandError}
+            </div>
+          )}
+          {brandResult && (
+            <div style={{ marginTop: '16px', background: '#111', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)', padding: '16px' }}>
+              <img src={brandResult} alt="Generated from template" style={{ width: '100%', borderRadius: '8px', display: 'block', marginBottom: '10px' }} />
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button onClick={() => {
+                  const a = document.createElement('a');
+                  a.href = brandResult!; a.download = 'thumbnail-brand.png'; a.click();
+                }} style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, border: '1px solid rgba(34,197,94,0.3)', background: 'rgba(34,197,94,0.1)', color: '#22c55e', cursor: 'pointer' }}>
+                  Download PNG
+                </button>
+                <button onClick={() => handleAIImageToEditor(brandResult!)} style={{ padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, border: '1px solid rgba(0,204,255,0.3)', background: 'rgba(0,204,255,0.1)', color: '#00ccff', cursor: 'pointer' }}>
+                  Send to Editor
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       )}
 
       {/* Editor Tab */}
