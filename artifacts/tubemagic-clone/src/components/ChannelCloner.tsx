@@ -40,6 +40,42 @@ interface NicheSuggestion {
   cpmRange: string;
 }
 
+interface DeepAnalysis {
+  titleStrategy?: {
+    patterns?: string;
+    lengthAvg?: string;
+    emotionalTriggers?: string;
+    topTechniques?: string[];
+  };
+  thumbnailStrategy?: {
+    style?: string;
+    textUsage?: string;
+    consistencyScore?: string;
+    whatWorks?: string;
+  };
+  contentStructure?: {
+    hookStyle?: string;
+    bodyFormat?: string;
+    pacingNotes?: string;
+    retentionTechniques?: string[];
+    ctaStyle?: string;
+  };
+  uploadFrequency?: {
+    schedule?: string;
+    consistency?: string;
+    bestDays?: string;
+  };
+  top5Titles?: { title: string; views: string; whyItWorks: string }[];
+  weakest5?: { title: string; views: string; whyItFlopped: string }[];
+}
+
+interface CloneIdea {
+  title: string;
+  thumbnailText: string;
+  concept: string;
+  format: string;
+}
+
 interface Screenshot {
   data: string;
   mediaType: string;
@@ -178,6 +214,145 @@ function NicheCard({ niche, index, isFirst }: { niche: NicheSuggestion; index: n
   );
 }
 
+function DeepAnalysisCard({ analysis }: { analysis: DeepAnalysis }) {
+  const section = (icon: string, title: string, children: React.ReactNode) => (
+    <div style={{ background: '#111', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '16px 20px', marginBottom: '10px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+        <span style={{ fontSize: '16px' }}>{icon}</span>
+        <span style={{ fontSize: '15px', fontWeight: 700, color: '#fff' }}>{title}</span>
+      </div>
+      {children}
+    </div>
+  );
+
+  const row = (label: string, value?: string) => value ? (
+    <div style={{ padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+      <div style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '3px' }}>{label}</div>
+      <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)', lineHeight: 1.5 }}>{value}</div>
+    </div>
+  ) : null;
+
+  const tags = (items?: string[]) => items?.length ? (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' }}>
+      {items.map((item, i) => (
+        <span key={i} style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 500, background: 'rgba(96,165,250,0.12)', color: '#93c5fd', border: '1px solid rgba(96,165,250,0.2)' }}>{item}</span>
+      ))}
+    </div>
+  ) : null;
+
+  return (
+    <div style={{ marginBottom: '20px' }}>
+      <div style={{ fontSize: '16px', fontWeight: 700, color: '#fff', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <span>🔬</span> Deep Channel Analysis
+      </div>
+
+      {analysis.titleStrategy && section('✏️', 'Title Strategy', <>
+        {row('Patterns', analysis.titleStrategy.patterns)}
+        {row('Average Length & Style', analysis.titleStrategy.lengthAvg)}
+        {row('Emotional Triggers', analysis.titleStrategy.emotionalTriggers)}
+        {analysis.titleStrategy.topTechniques && <>
+          <div style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: '8px', marginBottom: '4px' }}>Top Techniques</div>
+          {tags(analysis.titleStrategy.topTechniques)}
+        </>}
+      </>)}
+
+      {analysis.thumbnailStrategy && section('🖼️', 'Thumbnail Strategy', <>
+        {row('Visual Style', analysis.thumbnailStrategy.style)}
+        {row('Text Usage', analysis.thumbnailStrategy.textUsage)}
+        {row('Consistency', analysis.thumbnailStrategy.consistencyScore ? `${analysis.thumbnailStrategy.consistencyScore}/10` : undefined)}
+        {row('What Makes Them Click', analysis.thumbnailStrategy.whatWorks)}
+      </>)}
+
+      {analysis.contentStructure && section('🎬', 'Content Structure & Retention', <>
+        {row('Hook Style', analysis.contentStructure.hookStyle)}
+        {row('Body Format', analysis.contentStructure.bodyFormat)}
+        {row('Pacing', analysis.contentStructure.pacingNotes)}
+        {row('CTA Style', analysis.contentStructure.ctaStyle)}
+        {analysis.contentStructure.retentionTechniques && <>
+          <div style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: '8px', marginBottom: '4px' }}>Retention Techniques</div>
+          {tags(analysis.contentStructure.retentionTechniques)}
+        </>}
+      </>)}
+
+      {analysis.uploadFrequency && section('📅', 'Upload Frequency', <>
+        {row('Schedule', analysis.uploadFrequency.schedule)}
+        {row('Consistency', analysis.uploadFrequency.consistency)}
+        {row('Best Days', analysis.uploadFrequency.bestDays)}
+      </>)}
+
+      {analysis.top5Titles && analysis.top5Titles.length > 0 && section('🏆', 'Top 5 Best Performing Titles', <>
+        {analysis.top5Titles.map((v, i) => (
+          <div key={i} style={{ padding: '10px 0', borderBottom: i < analysis.top5Titles!.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+            <div style={{ fontSize: '14px', fontWeight: 600, color: '#34d399', marginBottom: '2px' }}>{i + 1}. {v.title}</div>
+            <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>{v.views} views — {v.whyItWorks}</div>
+          </div>
+        ))}
+      </>)}
+
+      {analysis.weakest5 && analysis.weakest5.length > 0 && section('📉', 'Weakest 5 Titles (Learn What to Avoid)', <>
+        {analysis.weakest5.map((v, i) => (
+          <div key={i} style={{ padding: '10px 0', borderBottom: i < analysis.weakest5!.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+            <div style={{ fontSize: '14px', fontWeight: 600, color: '#f87171', marginBottom: '2px' }}>{i + 1}. {v.title}</div>
+            <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>{v.views} views — {v.whyItFlopped}</div>
+          </div>
+        ))}
+      </>)}
+    </div>
+  );
+}
+
+function CloneIdeasCard({ ideas }: { ideas: CloneIdea[] }) {
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+  const formatColors: Record<string, string> = {
+    storytelling: '#a78bfa', listicle: '#34d399', tutorial: '#60a5fa',
+    'case study': '#f59e0b', reaction: '#f87171', comparison: '#ec4899',
+  };
+
+  function copyIdea(idea: CloneIdea, i: number) {
+    const text = `Title: ${idea.title}\nThumbnail Text: ${idea.thumbnailText}\nFormat: ${idea.format}\nConcept: ${idea.concept}`;
+    navigator.clipboard.writeText(text).catch(() => {});
+    setCopiedIdx(i);
+    setTimeout(() => setCopiedIdx(null), 2000);
+  }
+
+  return (
+    <div style={{ marginBottom: '20px' }}>
+      <div style={{ fontSize: '16px', fontWeight: 700, color: '#fff', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <span>💡</span> 10 Clone-Ready Video Ideas
+      </div>
+      <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.35)', marginBottom: '14px' }}>
+        Based on gaps, patterns, and winning formulas found in the research
+      </div>
+      {ideas.map((idea, i) => {
+        const fmtColor = formatColors[idea.format?.toLowerCase()] || '#60a5fa';
+        return (
+          <div key={i} style={{ background: '#111', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '16px 20px', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: 'rgba(255,255,255,0.2)', minWidth: '20px' }}>{i + 1}</span>
+                  <span style={{ fontSize: '11px', fontWeight: 600, color: fmtColor, background: `${fmtColor}15`, padding: '2px 8px', borderRadius: '4px', border: `1px solid ${fmtColor}30` }}>{idea.format}</span>
+                </div>
+                <div style={{ fontSize: '15px', fontWeight: 600, color: '#fff', marginBottom: '4px' }}>{idea.title}</div>
+                <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', marginBottom: '6px' }}>{idea.concept}</div>
+                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.3)' }}>
+                  Thumbnail text: <strong style={{ color: 'rgba(255,255,255,0.6)' }}>{idea.thumbnailText}</strong>
+                </div>
+              </div>
+              <button
+                onClick={() => copyIdea(idea, i)}
+                style={{ flexShrink: 0, padding: '5px 12px', borderRadius: '6px', fontSize: '12px', background: copiedIdx === i ? '#22c55e20' : 'rgba(255,255,255,0.05)', color: copiedIdx === i ? '#22c55e' : 'rgba(255,255,255,0.4)', border: `1px solid ${copiedIdx === i ? '#22c55e40' : 'rgba(255,255,255,0.1)'}`, cursor: 'pointer' }}
+              >
+                {copiedIdx === i ? '✓' : 'Copy'}
+              </button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function ScriptDisplay({ text }: { text: string }) {
   const lines = text.split('\n');
   return (
@@ -217,6 +392,8 @@ export default function ChannelCloner() {
   const [channel, setChannel] = useState<ChannelData | null>(null);
   const [videos, setVideos] = useState<TopVideo[]>([]);
   const [dna, setDna] = useState<ChannelDNA | null>(null);
+  const [deepAnalysis, setDeepAnalysis] = useState<DeepAnalysis | null>(null);
+  const [cloneIdeas, setCloneIdeas] = useState<CloneIdea[]>([]);
   const [ideas, setIdeas] = useState<NicheSuggestion[]>([]);
   const [script, setScript] = useState('');
   const [done, setDone] = useState(false);
@@ -228,6 +405,8 @@ export default function ChannelCloner() {
     setChannel(null);
     setVideos([]);
     setDna(null);
+    setDeepAnalysis(null);
+    setCloneIdeas([]);
     setIdeas([]);
     setScript('');
     setDone(false);
@@ -296,6 +475,8 @@ export default function ChannelCloner() {
             else if (event.type === 'channel') setChannel(event.data as ChannelData);
             else if (event.type === 'videos') setVideos(event.data as TopVideo[]);
             else if (event.type === 'dna') setDna(event.data as ChannelDNA);
+            else if (event.type === 'deep_analysis') setDeepAnalysis(event.data as DeepAnalysis);
+            else if (event.type === 'clone_ideas') setCloneIdeas(event.data as CloneIdea[]);
             else if (event.type === 'ideas') setIdeas(event.data as NicheSuggestion[]);
             else if (event.type === 'script_delta') {
               scriptAccum += event.text!;
@@ -324,7 +505,7 @@ export default function ChannelCloner() {
 
       <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>Channel DNA</h1>
       <p style={{ fontSize: '15px', color: 'rgba(255,255,255,0.4)', marginBottom: '28px', lineHeight: 1.6 }}>
-        Paste any YouTube channel URL. We'll analyze their style and DNA — then suggest 5 completely different niches where you could replicate the same approach, plus a full script to get started.
+        Paste any YouTube channel URL. We'll deep-analyze their title strategy, thumbnails, content structure, retention techniques, top/weakest videos — then generate 10 clone-ready video ideas with proven formats.
       </p>
 
       {/* Input */}
@@ -411,6 +592,12 @@ export default function ChannelCloner() {
 
       {/* DNA */}
       {dna && <DNACard dna={dna} />}
+
+      {/* Deep Analysis */}
+      {deepAnalysis && <DeepAnalysisCard analysis={deepAnalysis} />}
+
+      {/* Clone Ideas */}
+      {cloneIdeas.length > 0 && <CloneIdeasCard ideas={cloneIdeas} />}
 
       {/* Niche suggestions */}
       {ideas.length > 0 && (

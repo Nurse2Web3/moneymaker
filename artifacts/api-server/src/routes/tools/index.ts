@@ -1040,6 +1040,105 @@ Return ONLY valid JSON:
     const dna = dnaMatch ? JSON.parse(dnaMatch[0]) : {};
     send({ type: 'dna', data: dna });
 
+    // Deep analysis: title strategy, thumbnail strategy, top/weakest videos, upload frequency
+    send({ type: 'status', message: 'Analyzing title strategy, thumbnails, and performance patterns (Opus)…' });
+    const deepMsg = await anthropic.messages.create({
+      model: 'claude-opus-4-7',
+      max_tokens: 3000,
+      messages: [{
+        role: 'user',
+        content: `You are an elite YouTube analyst. Perform a DEEP analysis of this channel based on its top videos and transcripts.
+
+CHANNEL: ${channel.name}
+SUBSCRIBERS: ${Number(channel.subscribers).toLocaleString()}
+VIDEOS: ${channel.videoCount}
+TOTAL VIEWS: ${Number(channel.totalViews).toLocaleString()}
+
+TOP VIDEOS (by views):
+${videoListText}
+
+TRANSCRIPTS:
+${transcriptText}
+
+Return ONLY valid JSON:
+{
+  "titleStrategy": {
+    "patterns": "What title formulas do they use repeatedly? (questions, numbers, how-to, controversy, etc.)",
+    "lengthAvg": "Average title length and style",
+    "emotionalTriggers": "What emotions do their titles target?",
+    "topTechniques": ["technique 1", "technique 2", "technique 3"]
+  },
+  "thumbnailStrategy": {
+    "style": "Describe their thumbnail visual style (faces, text, colors, composition)",
+    "textUsage": "How do they use text on thumbnails?",
+    "consistencyScore": "Rate 1-10 how consistent their thumbnails are",
+    "whatWorks": "What makes their best thumbnails click-worthy?"
+  },
+  "contentStructure": {
+    "hookStyle": "How do they open videos? (first 15 seconds)",
+    "bodyFormat": "Storytelling, listicle, tutorial, case study, etc.",
+    "pacingNotes": "Fast, slow, mixed? How do they maintain retention?",
+    "retentionTechniques": ["technique 1", "technique 2", "technique 3"],
+    "ctaStyle": "How do they close and what do they ask viewers to do?"
+  },
+  "uploadFrequency": {
+    "schedule": "How often do they upload? (daily, weekly, etc.)",
+    "consistency": "How consistent is the schedule?",
+    "bestDays": "What days/times seem to work best?"
+  },
+  "top5Titles": [
+    { "title": "video title", "views": "view count", "whyItWorks": "1 sentence on why this title performs" }
+  ],
+  "weakest5": [
+    { "title": "video title", "views": "view count", "whyItFlopped": "1 sentence on why it underperformed" }
+  ]
+}`,
+      }],
+    });
+    const deepText = deepMsg.content[0].type === 'text' ? deepMsg.content[0].text : '{}';
+    const deepMatch = deepText.match(/\{[\s\S]*\}/);
+    const deepAnalysis = deepMatch ? JSON.parse(deepMatch[0]) : {};
+    send({ type: 'deep_analysis', data: deepAnalysis });
+
+    // Generate 10 video ideas based on gaps and patterns found
+    send({ type: 'status', message: 'Generating 10 clone-ready video ideas (Opus)…' });
+    const cloneIdeasMsg = await anthropic.messages.create({
+      model: 'claude-opus-4-7',
+      max_tokens: 3000,
+      messages: [{
+        role: 'user',
+        content: `You are a YouTube strategist. Based on this deep channel analysis, generate 10 video ideas that someone could create for THEIR OWN channel by cloning the winning formulas found.
+
+CHANNEL ANALYZED: ${channel.name}
+DNA: ${dna.summary || ''}
+Title Strategy: ${deepAnalysis.titleStrategy?.patterns || ''}
+Content Format: ${deepAnalysis.contentStructure?.bodyFormat || ''}
+Retention Techniques: ${JSON.stringify(deepAnalysis.contentStructure?.retentionTechniques || [])}
+What works in thumbnails: ${deepAnalysis.thumbnailStrategy?.whatWorks || ''}
+Top performing titles: ${JSON.stringify(deepAnalysis.top5Titles || [])}
+Weakest titles: ${JSON.stringify(deepAnalysis.weakest5 || [])}
+
+Generate 10 video ideas based on:
+- Gaps found (topics they haven't covered that their audience would want)
+- Winning patterns (replicate what works, avoid what doesn't)
+- Proven formats (use their best content structure)
+
+Return ONLY a valid JSON array:
+[
+  {
+    "title": "A proven-format video title ready to use",
+    "thumbnailText": "The 3-5 word text overlay for the thumbnail",
+    "concept": "One sentence explaining the angle and why it would work",
+    "format": "storytelling | listicle | tutorial | case study | reaction | comparison"
+  }
+]`,
+      }],
+    });
+    const cloneIdeasText = cloneIdeasMsg.content[0].type === 'text' ? cloneIdeasMsg.content[0].text : '[]';
+    const cloneIdeasMatch = cloneIdeasText.match(/\[[\s\S]*\]/);
+    const cloneIdeas = cloneIdeasMatch ? JSON.parse(cloneIdeasMatch[0]) : [];
+    send({ type: 'clone_ideas', data: cloneIdeas });
+
     // Generate 5 niche transfer suggestions
     send({ type: 'status', message: 'Finding niches where this style would dominate…' });
     const ideasMsg = await anthropic.messages.create({
