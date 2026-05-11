@@ -668,17 +668,37 @@ Audience Relationship: ${dna.audienceRelationship}`,
       {/* Channel card */}
       {channel && <ChannelCard channel={channel} />}
 
-      {/* Top videos */}
+      {/* Top videos with ratio */}
       {videos.length > 0 && (
         <div style={{ background: '#111', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '16px 20px', marginBottom: '16px' }}>
-          <div style={{ fontSize: '12px', fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '12px' }}>Top Videos Analyzed</div>
-          {videos.slice(0, 8).map((v, i) => (
-            <div key={v.videoId} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '7px 0', borderBottom: i < Math.min(7, videos.length - 1) ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
-              <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.2)', minWidth: '16px', textAlign: 'right', fontWeight: 600 }}>{i + 1}</span>
-              <a href={`https://youtube.com/watch?v=${v.videoId}`} target="_blank" rel="noreferrer" style={{ flex: 1, fontSize: '13px', color: 'rgba(255,255,255,0.7)', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.title}</a>
-              <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.3)', flexShrink: 0 }}>{formatNum(v.viewCount)} views</span>
+          <div style={{ fontSize: '12px', fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>Top Videos Analyzed</div>
+          {channel && (
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.25)', marginBottom: '12px' }}>
+              Channel avg: {formatNum(Math.round(Number(channel.totalViews) / Math.max(Number(channel.videoCount), 1)))}/video
             </div>
-          ))}
+          )}
+          {videos.slice(0, 8).map((v, i) => {
+            const avg = channel ? Math.round(Number(channel.totalViews) / Math.max(Number(channel.videoCount), 1)) : 0;
+            const ratio = avg > 0 ? Math.round((Number(v.viewCount) / avg) * 10) / 10 : 0;
+            const isHot = ratio >= 5;
+            const isStrong = ratio >= 2;
+            return (
+              <div key={v.videoId} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '7px 0', borderBottom: i < Math.min(7, videos.length - 1) ? '1px solid rgba(255,255,255,0.05)' : 'none', background: isHot ? 'rgba(245,158,11,0.04)' : 'transparent' }}>
+                <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.2)', minWidth: '16px', textAlign: 'right', fontWeight: 600 }}>{i + 1}</span>
+                <a href={`https://youtube.com/watch?v=${v.videoId}`} target="_blank" rel="noreferrer" style={{ flex: 1, fontSize: '13px', color: 'rgba(255,255,255,0.7)', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.title}</a>
+                <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.3)', flexShrink: 0 }}>{formatNum(v.viewCount)}</span>
+                {ratio > 0 && (
+                  <span style={{
+                    fontSize: '10px', fontWeight: 700, padding: '1px 6px', borderRadius: 10, flexShrink: 0,
+                    background: isHot ? 'rgba(245,158,11,0.15)' : isStrong ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.05)',
+                    color: isHot ? '#f59e0b' : isStrong ? '#22c55e' : 'rgba(255,255,255,0.4)',
+                  }}>
+                    {isHot && '🔥'}{ratio}x
+                  </span>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 

@@ -23,6 +23,7 @@ import Teleprompter from './components/Teleprompter';
 import ChannelCloner from './components/ChannelCloner';
 import VideoMaker from './components/VideoMaker';
 import SavedDashboard from './components/SavedDashboard';
+import ViroscopeAI from './components/ViroscopeAI';
 import { useSavedItems } from './lib/savedItems';
 
 type Page =
@@ -41,6 +42,7 @@ type Page =
   | 'teleprompter'
   | 'channel-cloner'
   | 'video-maker'
+  | 'viroscope'
   | 'saved';
 
 const TOOL_GROUPS = [
@@ -63,6 +65,7 @@ const TOOL_GROUPS = [
       { id: 'niche-analyzer' as Page, label: 'Niche Analyzer', icon: '🔬', desc: 'Gaps, opportunities & quick wins' },
       { id: 'video-analyzer' as Page, label: 'Video Analyzer', icon: '📡', desc: 'Decode any video\'s transcript & formula' },
       { id: 'channel-cloner' as Page, label: 'Channel DNA', icon: '🧬', desc: 'Clone any channel\'s style & voice' },
+      { id: 'viroscope' as Page, label: 'ViroscopeAI', icon: '🔬', desc: 'Find viral outliers in any niche' },
     ],
   },
   {
@@ -237,6 +240,7 @@ export default function App() {
         {page === 'thumbnail-generator' && <ThumbnailGenerator />}
         {page === 'channel-cloner' && <ChannelCloner />}
         {page === 'video-maker' && <VideoMaker />}
+        {page === 'viroscope' && <ViroscopeAI />}
         {page === 'saved' && <SavedDashboard />}
       </div>
     </div>

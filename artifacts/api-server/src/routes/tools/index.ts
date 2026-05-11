@@ -114,15 +114,64 @@ router.post("/tools/ideas", async (req, res): Promise<void> => {
   const { channelNiche, count = 8 } = parsed.data;
 
   try {
+    const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
     const topVideos = await fetchTopYouTubeVideos(channelNiche, 15);
 
+    // Fetch channel averages for outlier detection in idea generation
+    let enrichedContext = '';
+    if (YOUTUBE_API_KEY && topVideos.length > 0) {
+      const ideaChannelIds = [...new Set(topVideos.map(v => {
+        // We need channelId — fetch from a search that includes it
+        return null; // fetchTopYouTubeVideos doesn't return channelId
+      }).filter(Boolean))] as string[];
+
+      // Use a separate search to get channelIds
+      const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&order=viewCount&q=${encodeURIComponent(channelNiche)}&maxResults=15&key=${YOUTUBE_API_KEY}`;
+      const searchRes = await fetch(searchUrl);
+      const searchData = await searchRes.json() as {
+        items?: { id: { videoId: string }; snippet: { channelId: string; channelTitle: string } }[];
+      };
+
+      if (searchData.items?.length) {
+        const chIds = [...new Set(searchData.items.map(v => v.snippet.channelId))];
+        const chMap: Record<string, number> = {};
+
+        for (let ci = 0; ci < chIds.length; ci += 50) {
+          const batch = chIds.slice(ci, ci + 50).join(',');
+          const chUrl = `https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${batch}&key=${YOUTUBE_API_KEY}`;
+          const chRes = await fetch(chUrl);
+          const chData = await chRes.json() as {
+            items?: { id: string; statistics: { viewCount?: string; videoCount?: string } }[];
+          };
+          for (const ch of chData.items ?? []) {
+            chMap[ch.id] = Math.round(Number(ch.statistics.viewCount || 0) / Math.max(Number(ch.statistics.videoCount || 1), 1));
+          }
+        }
+
+        // Map video IDs to channel IDs
+        const vidToChannel: Record<string, string> = {};
+        for (const item of searchData.items) {
+          vidToChannel[item.id.videoId] = item.snippet.channelId;
+        }
+
+        enrichedContext = topVideos.map((v, i) => {
+          const chId = vidToChannel[v.videoId];
+          const avg = chId ? chMap[chId] || 0 : 0;
+          const ratio = avg > 0 ? Math.round((Number(v.viewCount) / avg) * 10) / 10 : 0;
+          const outlierTag = ratio >= 5 ? ' 🔥 VIRAL OUTLIER (topic hit, not just big channel)' : ratio >= 2 ? ' ⚡ STRONG PERFORMER' : '';
+          return `${i + 1}. "${v.title}" — ${Number(v.viewCount).toLocaleString()} views, ${ratio}x channel avg${outlierTag} (${v.channel}, ${v.publishedAt.slice(0, 10)})`;
+        }).join('\n');
+      }
+    }
+
     const ytContext = topVideos.length > 0
-      ? `\n\nREAL YouTube data — top performing videos in the "${channelNiche}" niche right now:\n${topVideos.map((v, i) =>
+      ? `\n\nREAL YouTube data with OUTLIER DETECTION — "${channelNiche}" niche:\n${enrichedContext || topVideos.map((v, i) =>
           `${i + 1}. "${v.title}" — ${Number(v.viewCount).toLocaleString()} views, ${Number(v.likeCount).toLocaleString()} likes (${v.channel}, ${v.publishedAt.slice(0,10)})`
-        ).join("\n")}\n\nThis is what's actually getting views. Use this to:
+        ).join("\n")}\n\nVideos marked VIRAL OUTLIER got 5x+ their channel's average — meaning the TOPIC resonated, not just the channel size. Prioritize ideas similar to outlier topics.\n\nUse this to:
+- Clone topics from VIRAL OUTLIER videos — those topics have proven demand
 - Identify content angles that are clearly working
 - Spot gaps where demand exists but no one is covering it well
-- Assign realistic view potential (Viral = 1M+, High = 100K+, Medium = 10K+, Low = under 10K) based on what you see`
+- Assign realistic view potential (Viral = 1M+, High = 100K+, Medium = 10K+, Low = under 10K)`
       : "";
 
     const message = await anthropic.messages.create({
@@ -137,15 +186,17 @@ Current year: ${CURRENT_YEAR}. Use ${CURRENT_YEAR} in titles where relevant — 
 
 For each idea:
 - Write a compelling, specific video title (not generic)
-- 1-2 sentence description of what it covers and why viewers will want it
+- 1-2 sentence description — reference which viral data point inspired this idea
 - Estimated view potential calibrated to the real data above
+- Title formula used (e.g., "Never [X]", "How to [result]", "[N] Rules")
 
 Return ONLY valid JSON array:
 [
   {
     "title": "Specific Video Title Here",
-    "description": "What this covers and why it will perform well based on the data.",
-    "estimatedViews": "High"
+    "description": "What this covers and why — reference the data that shows this topic works.",
+    "estimatedViews": "High",
+    "formula": "Title formula name"
   }
 ]`,
       }],
@@ -155,7 +206,8 @@ Return ONLY valid JSON array:
     const jsonMatch = text.match(/\[[\s\S]*\]/);
     const ideas = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
 
-    res.json({ ideas, dataSource: topVideos.length > 0 ? `Analyzed ${topVideos.length} top YouTube videos in this niche` : null });
+    const outlierCount = enrichedContext ? (enrichedContext.match(/VIRAL OUTLIER/g) || []).length : 0;
+    res.json({ ideas, dataSource: topVideos.length > 0 ? `Analyzed ${topVideos.length} videos (${outlierCount} viral outliers detected)` : null });
   } catch (err) {
     req.log.error({ err }, "Idea generation failed");
     res.status(500).json({ error: "Idea generation failed" });
@@ -582,23 +634,56 @@ router.post("/tools/niche-analysis", async (req, res): Promise<void> => {
           for (const v of statsData.items) statsMap[v.id] = v.statistics;
         }
 
-        topVideos = searchData.items.map(v => ({
-          title: v.snippet.title,
-          channel: v.snippet.channelTitle,
-          publishedAt: v.snippet.publishedAt,
-          videoId: v.id.videoId,
-          thumbnail: v.snippet.thumbnails.medium.url,
-          viewCount: statsMap[v.id.videoId]?.viewCount || "0",
-          likeCount: statsMap[v.id.videoId]?.likeCount || "0",
-          commentCount: statsMap[v.id.videoId]?.commentCount || "0",
-        }));
+        // Fetch channel averages for outlier detection
+        const nicheChannelIds = [...new Set(searchData.items.map(v => v.snippet.channelId))];
+        const nicheChannelMap: Record<string, { avgViews: number; subs: number; videoCount: number }> = {};
+        for (let ci = 0; ci < nicheChannelIds.length; ci += 50) {
+          const batch = nicheChannelIds.slice(ci, ci + 50).join(',');
+          const chUrl = `https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${batch}&key=${YOUTUBE_API_KEY}`;
+          const chRes = await fetch(chUrl);
+          const chData = await chRes.json() as {
+            items?: { id: string; statistics: { subscriberCount?: string; videoCount?: string; viewCount?: string } }[];
+          };
+          for (const ch of chData.items ?? []) {
+            const totalV = Number(ch.statistics.viewCount || 0);
+            const vidCount = Number(ch.statistics.videoCount || 1);
+            nicheChannelMap[ch.id] = {
+              avgViews: Math.round(totalV / Math.max(vidCount, 1)),
+              subs: Number(ch.statistics.subscriberCount || 0),
+              videoCount: vidCount,
+            };
+          }
+        }
+
+        topVideos = searchData.items.map(v => {
+          const views = Number(statsMap[v.id.videoId]?.viewCount || "0");
+          const chStats = nicheChannelMap[v.snippet.channelId];
+          const ratio = chStats ? Math.round((views / Math.max(chStats.avgViews, 1)) * 10) / 10 : 0;
+          return {
+            title: v.snippet.title,
+            channel: v.snippet.channelTitle,
+            publishedAt: v.snippet.publishedAt,
+            videoId: v.id.videoId,
+            thumbnail: v.snippet.thumbnails.medium.url,
+            viewCount: statsMap[v.id.videoId]?.viewCount || "0",
+            likeCount: statsMap[v.id.videoId]?.likeCount || "0",
+            commentCount: statsMap[v.id.videoId]?.commentCount || "0",
+            channelAvg: chStats?.avgViews || 0,
+            channelSubs: chStats?.subs || 0,
+            ratio,
+            isOutlier: ratio >= 5,
+          };
+        });
       }
     }
 
     const ytContext = topVideos.length > 0
-      ? `\n\nREAL YOUTUBE DATA for "${niche}" (top 15 videos by views):\n${topVideos.map((v, i) =>
-          `${i + 1}. "${v.title}" by ${v.channel} — ${Number(v.viewCount).toLocaleString()} views, ${Number(v.likeCount).toLocaleString()} likes, published ${v.publishedAt.slice(0, 10)}`
-        ).join("\n")}\n\nUse this real data to make your analysis accurate — reference actual view counts, title patterns you observe, and what the data reveals about this niche.`
+      ? `\n\nREAL YOUTUBE DATA for "${niche}" (top 15 videos by views, with channel average comparison):\n${topVideos.map((v, i) => {
+          const ratio = (v as any).ratio || 0;
+          const chAvg = (v as any).channelAvg || 0;
+          const outlierTag = ratio >= 5 ? ' 🔥 VIRAL OUTLIER' : ratio >= 2 ? ' ⚡ STRONG' : '';
+          return `${i + 1}. "${v.title}" by ${v.channel} — ${Number(v.viewCount).toLocaleString()} views (${ratio}x channel avg of ${chAvg.toLocaleString()})${outlierTag}, ${Number(v.likeCount).toLocaleString()} likes, published ${v.publishedAt.slice(0, 10)}`;
+        }).join("\n")}\n\nThis data includes how each video compares to its channel's average. Videos marked VIRAL OUTLIER (5x+) indicate the TOPIC hit big, not just the creator. Use this to identify what's actually working vs what just has a big channel behind it.`
       : "";
 
     const message = await anthropic.messages.create({
@@ -1287,6 +1372,320 @@ Rules:
     const msg = err instanceof Error ? err.message : 'Scene generation failed';
     req.log.error({ err }, 'video-scenes failed');
     res.status(500).json({ error: msg });
+  }
+});
+
+// ──────────────────────────────────────────────
+// ViroscopeAI — Viral Outlier Scanner
+// ──────────────────────────────────────────────
+
+interface ViroscopeVideo {
+  videoId: string;
+  title: string;
+  channel: string;
+  channelId: string;
+  publishedAt: string;
+  thumbnail: string;
+  viewCount: number;
+  likeCount: number;
+  channelAvg: number;
+  channelSubs: number;
+  channelVideoCount: number;
+  ratio: number;
+  isOutlier: boolean;
+}
+
+interface TitlePattern {
+  pattern: string;
+  count: number;
+  avgRatio: number;
+  examples: string[];
+}
+
+router.post("/tools/viroscope", async (req, res): Promise<void> => {
+  const { keywords, days = 30, multiplier = 5, maxResults = 50 } = req.body as {
+    keywords: string;
+    days?: number;
+    multiplier?: number;
+    maxResults?: number;
+  };
+
+  if (!keywords?.trim()) {
+    res.status(400).json({ error: "keywords is required" });
+    return;
+  }
+
+  const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
+  if (!YOUTUBE_API_KEY) {
+    res.status(500).json({ error: "YouTube API key not configured" });
+    return;
+  }
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+
+  const send = (data: object) => res.write(`data: ${JSON.stringify(data)}\n\n`);
+  const heartbeat = setInterval(() => res.write(': ping\n\n'), 10000);
+
+  try {
+    // Step 1: Search for videos in the niche
+    send({ type: 'status', message: `Searching "${keywords}" — last ${days} days…` });
+    const afterDate = new Date(Date.now() - days * 86400000).toISOString();
+    const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&order=viewCount&q=${encodeURIComponent(keywords)}&publishedAfter=${afterDate}&maxResults=${Math.min(maxResults, 50)}&key=${YOUTUBE_API_KEY}`;
+    const searchRes = await fetch(searchUrl);
+    const searchData = await searchRes.json() as {
+      items?: { id: { videoId: string }; snippet: { title: string; channelTitle: string; channelId: string; publishedAt: string; thumbnails: { medium: { url: string } } } }[];
+    };
+
+    if (!searchData.items?.length) {
+      clearInterval(heartbeat);
+      send({ type: 'error', message: 'No videos found for this search.' });
+      send({ type: 'done' });
+      res.end();
+      return;
+    }
+
+    send({ type: 'status', message: `Found ${searchData.items.length} videos. Getting stats…` });
+
+    // Step 2: Get video stats
+    const videoIds = searchData.items.map(v => v.id.videoId).join(',');
+    const statsUrl = `https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${videoIds}&key=${YOUTUBE_API_KEY}`;
+    const statsRes = await fetch(statsUrl);
+    const statsData = await statsRes.json() as {
+      items?: { id: string; statistics: { viewCount?: string; likeCount?: string } }[];
+    };
+    const statsMap: Record<string, { viewCount: string; likeCount: string }> = {};
+    for (const v of statsData.items ?? []) {
+      statsMap[v.id] = { viewCount: v.statistics.viewCount || '0', likeCount: v.statistics.likeCount || '0' };
+    }
+
+    // Step 3: Get unique channel IDs and fetch channel stats
+    const channelIds = [...new Set(searchData.items.map(v => v.snippet.channelId))];
+    send({ type: 'status', message: `Analyzing ${channelIds.length} channels for averages…` });
+
+    const channelMap: Record<string, { name: string; subs: number; videoCount: number; totalViews: number; avgViews: number }> = {};
+
+    // Fetch channels in batches of 50
+    for (let i = 0; i < channelIds.length; i += 50) {
+      const batch = channelIds.slice(i, i + 50).join(',');
+      const chUrl = `https://www.googleapis.com/youtube/v3/channels?part=statistics,snippet&id=${batch}&key=${YOUTUBE_API_KEY}`;
+      const chRes = await fetch(chUrl);
+      const chData = await chRes.json() as {
+        items?: { id: string; snippet: { title: string }; statistics: { subscriberCount?: string; videoCount?: string; viewCount?: string } }[];
+      };
+      for (const ch of chData.items ?? []) {
+        const totalViews = Number(ch.statistics.viewCount || 0);
+        const videoCount = Number(ch.statistics.videoCount || 1);
+        channelMap[ch.id] = {
+          name: ch.snippet.title,
+          subs: Number(ch.statistics.subscriberCount || 0),
+          videoCount,
+          totalViews,
+          avgViews: Math.round(totalViews / Math.max(videoCount, 1)),
+        };
+      }
+    }
+
+    // Step 4: Build results with ratios
+    send({ type: 'status', message: 'Calculating viral outliers…' });
+    const videos: ViroscopeVideo[] = searchData.items.map(v => {
+      const views = Number(statsMap[v.id.videoId]?.viewCount || 0);
+      const ch = channelMap[v.snippet.channelId];
+      const avg = ch?.avgViews || 1;
+      const ratio = views / avg;
+
+      return {
+        videoId: v.id.videoId,
+        title: v.snippet.title,
+        channel: v.snippet.channelTitle,
+        channelId: v.snippet.channelId,
+        publishedAt: v.snippet.publishedAt,
+        thumbnail: v.snippet.thumbnails.medium.url,
+        viewCount: views,
+        likeCount: Number(statsMap[v.id.videoId]?.likeCount || 0),
+        channelAvg: avg,
+        channelSubs: ch?.subs || 0,
+        channelVideoCount: ch?.videoCount || 0,
+        ratio: Math.round(ratio * 10) / 10,
+        isOutlier: ratio >= multiplier,
+      };
+    }).sort((a, b) => b.ratio - a.ratio);
+
+    const outliers = videos.filter(v => v.isOutlier);
+    send({ type: 'videos', data: videos, outlierCount: outliers.length });
+
+    // Step 5: AI title pattern analysis
+    send({ type: 'status', message: 'Analyzing title patterns with AI…' });
+    const top20 = videos.slice(0, 20);
+    const titleList = top20.map((v, i) =>
+      `${i + 1}. "${v.title}" — ${v.viewCount.toLocaleString()} views | ${v.ratio}x channel avg | ${v.channel} (${v.channelSubs.toLocaleString()} subs)`
+    ).join('\n');
+
+    const patternMsg = await anthropic.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 2048,
+      messages: [{
+        role: 'user',
+        content: `You are a YouTube title analyst. Analyze these top-performing videos in the "${keywords}" niche and identify the title formulas that correlate with higher performance.
+
+VIDEOS (sorted by how much they outperformed their channel average):
+${titleList}
+
+Return ONLY valid JSON:
+{
+  "patterns": [
+    {
+      "pattern": "Name of the pattern (e.g., 'Never [X] — [Power Move]')",
+      "description": "How this formula works and why it performs",
+      "avgRatio": number (average ratio of videos using this pattern),
+      "examples": ["exact title 1", "exact title 2"],
+      "template": "A fill-in-the-blank template anyone can use"
+    }
+  ],
+  "insights": [
+    "Key insight 1 about what's working in this niche right now",
+    "Key insight 2",
+    "Key insight 3"
+  ],
+  "avoidPatterns": [
+    "Pattern that underperforms and why"
+  ],
+  "suggestedTitles": [
+    "5 title ideas based on what's working, using the top patterns"
+  ]
+}
+
+Identify 4-6 patterns. Be specific — reference actual titles from the data.`,
+      }],
+    });
+
+    const patternText = patternMsg.content[0].type === 'text' ? patternMsg.content[0].text : '{}';
+    const patternMatch = patternText.match(/\{[\s\S]*\}/);
+    const analysis = patternMatch ? JSON.parse(patternMatch[0]) : {};
+    send({ type: 'analysis', data: analysis });
+
+    clearInterval(heartbeat);
+    send({ type: 'done' });
+    res.end();
+  } catch (err) {
+    clearInterval(heartbeat);
+    const msg = err instanceof Error ? err.message : 'ViroscopeAI scan failed';
+    req.log.error({ err }, 'viroscope failed');
+    send({ type: 'error', message: msg });
+    res.end();
+  }
+});
+
+// ──────────────────────────────────────────────
+// ViroscopeAI — Channel Compare
+// ──────────────────────────────────────────────
+router.post("/tools/viroscope-compare", async (req, res): Promise<void> => {
+  const { channelUrl1, channelUrl2 } = req.body as { channelUrl1: string; channelUrl2: string };
+
+  if (!channelUrl1?.trim() || !channelUrl2?.trim()) {
+    res.status(400).json({ error: "Both channelUrl1 and channelUrl2 are required" });
+    return;
+  }
+
+  const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
+  if (!YOUTUBE_API_KEY) {
+    res.status(500).json({ error: "YouTube API key not configured" });
+    return;
+  }
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+
+  const send = (data: object) => res.write(`data: ${JSON.stringify(data)}\n\n`);
+  const heartbeat = setInterval(() => res.write(': ping\n\n'), 10000);
+
+  try {
+    send({ type: 'status', message: 'Looking up channels…' });
+    const [ch1, ch2] = await Promise.all([
+      fetchChannelData(channelUrl1, YOUTUBE_API_KEY),
+      fetchChannelData(channelUrl2, YOUTUBE_API_KEY),
+    ]);
+    send({ type: 'channels', data: { channel1: ch1, channel2: ch2 } });
+
+    send({ type: 'status', message: 'Loading recent videos from both channels…' });
+    const [vids1, vids2] = await Promise.all([
+      fetchChannelTopVideos(ch1.id, YOUTUBE_API_KEY, 15),
+      fetchChannelTopVideos(ch2.id, YOUTUBE_API_KEY, 15),
+    ]);
+
+    const avg1 = Math.round(Number(ch1.totalViews) / Math.max(Number(ch1.videoCount), 1));
+    const avg2 = Math.round(Number(ch2.totalViews) / Math.max(Number(ch2.videoCount), 1));
+
+    const enriched1 = vids1.map(v => ({ ...v, ratio: Math.round((Number(v.viewCount) / Math.max(avg1, 1)) * 10) / 10 }));
+    const enriched2 = vids2.map(v => ({ ...v, ratio: Math.round((Number(v.viewCount) / Math.max(avg2, 1)) * 10) / 10 }));
+
+    send({ type: 'videos', data: {
+      channel1: { name: ch1.name, avg: avg1, videos: enriched1 },
+      channel2: { name: ch2.name, avg: avg2, videos: enriched2 },
+    }});
+
+    // AI comparison
+    send({ type: 'status', message: 'Comparing strategies with AI…' });
+    const compareMsg = await anthropic.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 2048,
+      messages: [{
+        role: 'user',
+        content: `Compare these two YouTube channels side-by-side.
+
+CHANNEL 1: ${ch1.name}
+Subs: ${Number(ch1.subscribers).toLocaleString()} | Videos: ${ch1.videoCount} | Avg views: ${avg1.toLocaleString()}
+Top videos:
+${enriched1.map((v, i) => `${i + 1}. "${v.title}" — ${Number(v.viewCount).toLocaleString()} views (${v.ratio}x avg)`).join('\n')}
+
+CHANNEL 2: ${ch2.name}
+Subs: ${Number(ch2.subscribers).toLocaleString()} | Videos: ${ch2.videoCount} | Avg views: ${avg2.toLocaleString()}
+Top videos:
+${enriched2.map((v, i) => `${i + 1}. "${v.title}" — ${Number(v.viewCount).toLocaleString()} views (${v.ratio}x avg)`).join('\n')}
+
+Return ONLY valid JSON:
+{
+  "winner": "channel name that's performing better overall and why (1 sentence)",
+  "titleComparison": {
+    "channel1Style": "Their title formula in 1-2 sentences",
+    "channel2Style": "Their title formula in 1-2 sentences",
+    "verdict": "Which approach is working better and why"
+  },
+  "contentComparison": {
+    "channel1Strengths": ["strength 1", "strength 2"],
+    "channel1Weaknesses": ["weakness 1"],
+    "channel2Strengths": ["strength 1", "strength 2"],
+    "channel2Weaknesses": ["weakness 1"]
+  },
+  "trendDirection": {
+    "channel1": "trending up / flat / declining based on recent video performance",
+    "channel2": "trending up / flat / declining"
+  },
+  "stealFromEach": {
+    "fromChannel1": "What to steal from channel 1's strategy",
+    "fromChannel2": "What to steal from channel 2's strategy"
+  },
+  "recommendation": "2-3 sentences on the optimal strategy combining the best of both"
+}`,
+      }],
+    });
+
+    const compareText = compareMsg.content[0].type === 'text' ? compareMsg.content[0].text : '{}';
+    const compareMatch = compareText.match(/\{[\s\S]*\}/);
+    const comparison = compareMatch ? JSON.parse(compareMatch[0]) : {};
+    send({ type: 'comparison', data: comparison });
+
+    clearInterval(heartbeat);
+    send({ type: 'done' });
+    res.end();
+  } catch (err) {
+    clearInterval(heartbeat);
+    const msg = err instanceof Error ? err.message : 'Channel compare failed';
+    req.log.error({ err }, 'viroscope-compare failed');
+    send({ type: 'error', message: msg });
+    res.end();
   }
 });
 
