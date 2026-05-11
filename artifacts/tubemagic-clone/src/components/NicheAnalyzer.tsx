@@ -9,6 +9,10 @@ interface VideoResult {
   viewCount: string;
   likeCount: string;
   commentCount: string;
+  channelAvg?: number;
+  channelSubs?: number;
+  ratio?: number;
+  isOutlier?: boolean;
 }
 
 interface NicheAnalysis {
@@ -280,7 +284,18 @@ export default function NicheAnalyzer() {
                           </div>
                           <div style={{ textAlign: 'right', flexShrink: 0 }}>
                             <div style={{ fontSize: '17px', fontWeight: 700, color: '#fff' }}>{formatViews(v.viewCount)}</div>
-                            <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.3)' }}>views</div>
+                            {v.ratio != null && v.ratio > 0 ? (
+                              <span style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 3,
+                                padding: '1px 6px', borderRadius: 10, fontSize: 10, fontWeight: 700,
+                                background: v.isOutlier ? 'rgba(245,158,11,0.15)' : v.ratio >= 2 ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.05)',
+                                color: v.isOutlier ? '#f59e0b' : v.ratio >= 2 ? '#22c55e' : 'rgba(255,255,255,0.4)',
+                              }}>
+                                {v.isOutlier && '🔥'}{v.ratio}x avg
+                              </span>
+                            ) : (
+                              <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.3)' }}>views</div>
+                            )}
                           </div>
                         </div>
                       </a>
