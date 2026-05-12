@@ -174,9 +174,36 @@ function DNACard({ dna }: { dna: ChannelDNA }) {
   );
 }
 
-function NicheCard({ niche, index, isFirst }: { niche: NicheSuggestion; index: number; isFirst: boolean }) {
-  const color = isFirst ? '#34d399' : '#60a5fa';
-  const colorAlpha = isFirst ? 'rgba(52,211,153,' : 'rgba(96,165,250,';
+function NicheCard({ niche, index, channelName, onGenerateScript }: { niche: NicheSuggestion; index: number; channelName: string; onGenerateScript: (niche: NicheSuggestion) => void }) {
+  const { saveItem, isSaved } = useSavedItems();
+  const [copied, setCopied] = useState(false);
+  const color = '#60a5fa';
+  const colorAlpha = 'rgba(96,165,250,';
+
+  const nicheContent = `Niche: ${niche.niche}\nWhy It Works: ${niche.whyItWorks}\nGap: ${niche.gap}\nExample Title: ${niche.exampleTitle}\nHook: ${niche.hook}\nCPM: ${niche.cpmRange}`;
+  const saved = isSaved(nicheContent, 'niche');
+
+  function copyNiche() {
+    navigator.clipboard.writeText(nicheContent).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  function saveNiche() {
+    saveItem({
+      type: 'niche',
+      label: niche.niche,
+      content: nicheContent,
+      meta: `Niche transfer from ${channelName} | CPM ${niche.cpmRange}`,
+    });
+  }
+
+  const btnSmall: React.CSSProperties = {
+    padding: '5px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 600,
+    border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.05)',
+    color: 'rgba(255,255,255,0.4)', cursor: 'pointer',
+  };
+
   return (
     <div style={{ background: '#111', border: `1px solid ${colorAlpha}0.2)`, borderRadius: '12px', overflow: 'hidden', marginBottom: '10px' }}>
       {/* Header */}
@@ -186,7 +213,6 @@ function NicheCard({ niche, index, isFirst }: { niche: NicheSuggestion; index: n
           <div style={{ fontSize: '16px', fontWeight: 700, color, marginBottom: '1px' }}>{niche.niche}</div>
           <div style={{ fontSize: '12px', color: `${colorAlpha}0.6)`, fontWeight: 600 }}>CPM {niche.cpmRange}</div>
         </div>
-        {isFirst && <div style={{ fontSize: '11px', fontWeight: 600, color, background: `${colorAlpha}0.08)`, border: `1px solid ${colorAlpha}0.25)`, borderRadius: '4px', padding: '2px 8px' }}>★ Script written for this niche</div>}
       </div>
 
       <div style={{ padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -209,6 +235,27 @@ function NicheCard({ niche, index, isFirst }: { niche: NicheSuggestion; index: n
         <div style={{ padding: '10px 14px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', borderLeft: '2px solid rgba(255,255,255,0.1)' }}>
           <div style={{ fontSize: '10px', fontWeight: 700, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>Opening hook</div>
           <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.65)', fontStyle: 'italic', lineHeight: 1.5 }}>"{niche.hook}"</div>
+        </div>
+        {/* Action buttons */}
+        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '4px' }}>
+          <button
+            onClick={() => onGenerateScript(niche)}
+            style={{ ...btnSmall, background: 'rgba(167,139,250,0.1)', color: '#a78bfa', borderColor: 'rgba(167,139,250,0.3)' }}
+          >
+            Generate Script
+          </button>
+          <button
+            onClick={saveNiche}
+            style={{ ...btnSmall, background: saved ? 'rgba(251,191,36,0.1)' : 'rgba(255,255,255,0.05)', color: saved ? '#fbbf24' : 'rgba(255,255,255,0.4)', borderColor: saved ? 'rgba(251,191,36,0.3)' : 'rgba(255,255,255,0.1)' }}
+          >
+            {saved ? 'Saved' : 'Save'}
+          </button>
+          <button
+            onClick={copyNiche}
+            style={{ ...btnSmall, background: copied ? '#22c55e20' : 'rgba(255,255,255,0.05)', color: copied ? '#22c55e' : 'rgba(255,255,255,0.4)', borderColor: copied ? '#22c55e40' : 'rgba(255,255,255,0.1)' }}
+          >
+            {copied ? 'Copied' : 'Copy'}
+          </button>
         </div>
       </div>
     </div>
@@ -438,6 +485,9 @@ export default function ChannelCloner() {
   const [ideaScript, setIdeaScript] = useState('');
   const [ideaScriptLoading, setIdeaScriptLoading] = useState(false);
   const [ideaScriptTitle, setIdeaScriptTitle] = useState('');
+  const [nicheScript, setNicheScript] = useState('');
+  const [nicheScriptLoading, setNicheScriptLoading] = useState(false);
+  const [nicheScriptTitle, setNicheScriptTitle] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
 
   function reset() {
@@ -451,6 +501,9 @@ export default function ChannelCloner() {
     setScript('');
     setDone(false);
     setError('');
+    setNicheScript('');
+    setNicheScriptLoading(false);
+    setNicheScriptTitle('');
   }
 
   async function generateIdeaScript(idea: CloneIdea) {
@@ -502,6 +555,58 @@ Audience Relationship: ${dna.audienceRelationship}`,
       setIdeaScript('Script generation failed. Try again.');
     } finally {
       setIdeaScriptLoading(false);
+    }
+  }
+
+  async function generateNicheScript(niche: NicheSuggestion) {
+    if (!dna) return;
+    setNicheScript('');
+    setNicheScriptLoading(true);
+    setNicheScriptTitle(niche.niche);
+    try {
+      const res = await fetch('/api/scripts/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          topic: `${niche.exampleTitle} — ${niche.whyItWorks}. Gap to fill: ${niche.gap}. Opening hook: ${niche.hook}`,
+          videoLength: 1500,
+          tensionLevel: 'medium',
+          channelStyle: `Write in this channel's exact style:
+Hook Style: ${dna.hookStyle}
+Tone: ${dna.tone}
+Pacing: ${dna.pacing}
+Content Structure: ${dna.contentStructure}
+Audience Relationship: ${dna.audienceRelationship}`,
+        }),
+      });
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let buf = '';
+      let scriptAccum = '';
+      while (true) {
+        const { done: streamDone, value } = await reader.read();
+        if (streamDone) break;
+        buf += decoder.decode(value, { stream: true });
+        const lines = buf.split('\n');
+        buf = lines.pop() ?? '';
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          try {
+            const event = JSON.parse(line.slice(6)) as { content?: string; done?: boolean; error?: string };
+            if (event.content) {
+              scriptAccum += event.content;
+              setNicheScript(scriptAccum);
+            }
+            if (event.error) {
+              setNicheScript(`Error: ${event.error}`);
+            }
+          } catch { /* skip */ }
+        }
+      }
+    } catch {
+      setNicheScript('Script generation failed. Try again.');
+    } finally {
+      setNicheScriptLoading(false);
     }
   }
 
@@ -738,16 +843,26 @@ Audience Relationship: ${dna.audienceRelationship}`,
             <span>🚀</span> 5 Niches Where This Style Would Win
           </div>
           <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.35)', marginBottom: '14px' }}>
-            Different niches you could enter using the exact same content approach — first niche gets a full script
+            Different niches you could enter using the exact same content approach — pick one and generate a script
           </div>
           {ideas.map((niche, i) => (
-            <NicheCard key={i} niche={niche} index={i} isFirst={i === 0} />
+            <NicheCard key={i} niche={niche} index={i} channelName={channel?.name || ''} onGenerateScript={generateNicheScript} />
           ))}
         </div>
       )}
 
-      {/* Script */}
-      {script && <ScriptDisplay text={script} />}
+      {/* Niche Script */}
+      {(nicheScriptLoading || nicheScript) && (
+        <div style={{ marginBottom: '20px' }}>
+          {nicheScriptLoading && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px', background: '#111', borderRadius: '12px', border: '1px solid rgba(96,165,250,0.2)', marginBottom: '10px' }}>
+              <div style={{ width: '14px', height: '14px', border: '2px solid rgba(96,165,250,0.2)', borderTop: '2px solid #60a5fa', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+              <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)' }}>Writing script for "{nicheScriptTitle}" niche...</span>
+            </div>
+          )}
+          {nicheScript && <ScriptDisplay text={nicheScript} />}
+        </div>
+      )}
 
       {done && (
         <div style={{ textAlign: 'center', padding: '16px', color: 'rgba(255,255,255,0.3)', fontSize: '13px' }}>

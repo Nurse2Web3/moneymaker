@@ -1262,48 +1262,6 @@ Return ONLY a valid JSON array of 5 different niches:
     const ideas = (ideasMatch ? JSON.parse(ideasMatch[0]) : []) as { niche: string; whyItWorks: string; gap: string; exampleTitle: string; hook: string; cpmRange: string }[];
     send({ type: 'ideas', data: ideas });
 
-    // Write full script for the top idea (streaming)
-    if (ideas.length > 0) {
-      send({ type: 'status', message: 'Writing your script in their exact style…' });
-      const scriptStream = anthropic.messages.stream({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 4096,
-        system: `You are an elite YouTube scriptwriter. Write in the EXACT style of the analyzed channel:
-- Hook Style: ${dna.hookStyle || ''}
-- Tone: ${dna.tone || ''}
-- Pacing: ${dna.pacing || ''}
-- Content Structure: ${dna.contentStructure || ''}
-- Phrases to echo: ${(dna.recurringPhrases as string[] || []).join(', ')}
-- Emotional triggers to use: ${(dna.emotionalTriggers as string[] || []).join(', ')}
-- Unique patterns to follow: ${(dna.uniquePatterns as string[] || []).join(', ')}
-- Audience relationship: ${dna.audienceRelationship || ''}`,
-        messages: [{
-          role: 'user',
-          content: `Write a complete YouTube script for a video in this niche:
-
-NICHE: ${ideas[0].niche}
-TITLE: ${ideas[0].exampleTitle}
-HOOK LINE: ${ideas[0].hook}
-GAP THIS FILLS: ${ideas[0].gap}
-
-Write the FULL script with clear section labels:
-[HOOK] — first 15 seconds
-[PROMISE] — what they'll get
-[OPEN LOOP] — plant a mystery
-[BODY] — main content sections
-[CTA] — closing call to action
-
-Sound EXACTLY like the channel we analyzed. Same rhythm, energy, vocabulary, and personality — but 100% original content.`,
-        }],
-      });
-
-      for await (const event of scriptStream) {
-        if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-          send({ type: 'script_delta', text: event.delta.text });
-        }
-      }
-    }
-
     clearInterval(heartbeat);
     send({ type: 'done' });
     res.end();
