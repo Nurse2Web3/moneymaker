@@ -151,6 +151,7 @@ Return a JSON object with these exact fields:
 Rules:
 - ALL output (titles, description, tags, hashtags) MUST be written in US English, regardless of the topic's language or what language the top videos above are in
 - Titles must mirror the patterns of the top videos in the data above
+- **Description: the first 30-45 seconds of reading (roughly the first 75-110 words, BEFORE any timestamps) MUST naturally embed the top 5 keywords from your tags array.** Weave them into the hook conversationally — never keyword-stuff. YouTube's algorithm weights the description's opening heaviest, and front-loaded keywords are how the video ranks.
 - Description must mention the main keyword in the first 2 sentences
 - Tags must include singular + plural + qualified forms of the main keyword
 - Hashtags must include #${topic.split(" ").join("")} variant where it reads naturally

@@ -5,6 +5,7 @@ type ScoredTitle = {
   title: string;
   score: number;
   warnings: string[];
+  breakdown?: Record<string, number>;
 };
 
 type Bundle = {
@@ -45,6 +46,7 @@ export default function SeoBundle() {
   const [bundle, setBundle] = useState<Bundle | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
 
   async function generate() {
     if (!topic.trim()) return;
@@ -69,6 +71,12 @@ export default function SeoBundle() {
 
   function copy(t: string) {
     navigator.clipboard.writeText(t).catch(() => {});
+  }
+
+  function copyTitle(t: string, i: number) {
+    navigator.clipboard.writeText(t).catch(() => {});
+    setCopiedIdx(i);
+    setTimeout(() => setCopiedIdx(null), 2000);
   }
 
   const sectionTitle: React.CSSProperties = {
@@ -125,16 +133,28 @@ export default function SeoBundle() {
 
       {bundle && (
         <>
-          <div style={card}>
+          <div style={{ ...card, padding: 0, background: 'transparent', border: 'none' }}>
             <div style={sectionTitle}>Titles (ranked + scored)</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {bundle.titles.map((s, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: '#0a0a0a', borderRadius: 8 }}>
-                  <ScoreBadge score={s.score} />
-                  <span style={{ flex: 1, color: '#fff', fontSize: 16 }}>{s.title}</span>
-                  <button onClick={() => copy(s.title)} style={{ padding: '4px 10px', borderRadius: 6, fontSize: 13, background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer' }}>
-                    Copy
-                  </button>
+                <div key={i} style={{ background: '#111', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                      <ScoreBadge score={s.score} />
+                      <span style={{ fontSize: '24px', color: '#fff', lineHeight: 1.4 }}>{s.title}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                      <SaveButton type="title" label={s.title} content={s.title} meta={topic ? `Topic: ${topic}` : undefined} />
+                      <button onClick={() => copyTitle(s.title, i)} style={{ padding: '5px 12px', borderRadius: '6px', fontSize: '24px', background: copiedIdx === i ? '#22c55e20' : 'rgba(255,255,255,0.08)', color: copiedIdx === i ? '#22c55e' : 'rgba(255,255,255,0.5)', border: `1px solid ${copiedIdx === i ? '#22c55e40' : 'rgba(255,255,255,0.1)'}`, cursor: 'pointer' }}>
+                        {copiedIdx === i ? '✓' : 'Copy'}
+                      </button>
+                    </div>
+                  </div>
+                  {s.warnings && s.warnings.length > 0 && (
+                    <ul style={{ margin: 0, paddingLeft: 18, color: 'rgba(255,255,255,0.45)', fontSize: 12, lineHeight: 1.5 }}>
+                      {s.warnings.map((w, wi) => <li key={wi}>{w}</li>)}
+                    </ul>
+                  )}
                 </div>
               ))}
             </div>
