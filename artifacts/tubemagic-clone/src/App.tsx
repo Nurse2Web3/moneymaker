@@ -10,6 +10,7 @@ import FAQSection from './components/FAQSection';
 import Footer from './components/Footer';
 import ScriptWriter from './components/ScriptWriter';
 import TitleGenerator from './components/TitleGenerator';
+import SeoBundle from './components/SeoBundle';
 import IdeaGenerator from './components/IdeaGenerator';
 import DescriptionGenerator from './components/DescriptionGenerator';
 import TagGenerator from './components/TagGenerator';
@@ -32,6 +33,7 @@ type Page =
   | 'hook-generator'
   | 'idea-generator'
   | 'title-generator'
+  | 'seo-bundle'
   | 'description-generator'
   | 'tag-generator'
   | 'thumbnail-generator'
@@ -69,7 +71,8 @@ const TOOL_GROUPS = [
     label: 'Optimize',
     color: '#60a5fa',
     tools: [
-      { id: 'title-generator' as Page, label: 'Title Generator', icon: '✏️', desc: '5 viral titles instantly' },
+      { id: 'title-generator' as Page, label: 'Title Generator', icon: '✏️', desc: '5 viral titles — scored 0-100 for CTR' },
+      { id: 'seo-bundle' as Page, label: 'SEO Bundle', icon: '📦', desc: 'Titles + description + tags + hashtags in one call' },
       { id: 'description-generator' as Page, label: 'Description', icon: '📄', desc: 'SEO description + timestamps' },
       { id: 'tag-generator' as Page, label: 'Tags', icon: '🏷️', desc: '20 high-SEO tags' },
       { id: 'thumbnail-maker' as Page, label: 'Thumbnail Maker', icon: '🎨', desc: 'Drag-and-drop MrBeast-style editor' },
@@ -231,6 +234,7 @@ export default function App() {
         {page === 'video-analyzer' && <VideoAnalyzer />}
         {page === 'teleprompter' && <Teleprompter />}
         {page === 'title-generator' && <TitleGenerator />}
+        {page === 'seo-bundle' && <SeoBundle />}
         {page === 'description-generator' && <DescriptionGenerator />}
         {page === 'tag-generator' && <TagGenerator />}
         {page === 'thumbnail-maker' && <ThumbnailMaker />}

@@ -60,6 +60,24 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/GenerateTitlesResponse"
+  /tools/seo-bundle:
+    post:
+      operationId: generateSeoBundle
+      tags: [tools]
+      summary: Generate a full SEO bundle (titles, description, tags, hashtags) from one topic
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateSeoBundleBody"
+      responses:
+        "200":
+          description: Generated SEO bundle
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerateSeoBundleResponse"
   /tools/ideas:
     post:
       operationId: generateIdeas
@@ -157,6 +175,39 @@ components:
           type: string
       required:
         - topic
+    TitleScoreBreakdown:
+      type: object
+      properties:
+        length: { type: integer }
+        powerWords: { type: integer }
+        numbers: { type: integer }
+        bracket: { type: integer }
+        freshYear: { type: integer }
+        emotional: { type: integer }
+        casing: { type: integer }
+      required:
+        - length
+        - powerWords
+        - numbers
+        - bracket
+        - freshYear
+        - emotional
+        - casing
+    ScoredTitle:
+      type: object
+      properties:
+        title: { type: string }
+        score: { type: integer }
+        breakdown: { $ref: "#/components/schemas/TitleScoreBreakdown" }
+        warnings:
+          type: array
+          items:
+            type: string
+      required:
+        - title
+        - score
+        - breakdown
+        - warnings
     GenerateTitlesResponse:
       type: object
       properties:
@@ -164,8 +215,44 @@ components:
           type: array
           items:
             type: string
+        scoredTitles:
+          type: array
+          items:
+            $ref: "#/components/schemas/ScoredTitle"
+        dataSource:
+          type: string
+          nullable: true
       required:
         - titles
+    GenerateSeoBundleBody:
+      type: object
+      properties:
+        topic: { type: string }
+        channelNiche: { type: string }
+      required:
+        - topic
+    GenerateSeoBundleResponse:
+      type: object
+      properties:
+        titles:
+          type: array
+          items:
+            $ref: "#/components/schemas/ScoredTitle"
+        description: { type: string }
+        tags:
+          type: array
+          items: { type: string }
+        hashtags:
+          type: array
+          items: { type: string }
+        dataSource:
+          type: string
+          nullable: true
+      required:
+        - titles
+        - description
+        - tags
+        - hashtags
     GenerateIdeasBody:
       type: object
       properties:

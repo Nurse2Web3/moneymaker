@@ -22,6 +22,8 @@ import type {
   GenerateIdeasBody,
   GenerateIdeasResponse,
   GenerateScriptBody,
+  GenerateSeoBundleBody,
+  GenerateSeoBundleResponse,
   GenerateTagsBody,
   GenerateTagsResponse,
   GenerateTitlesBody,
@@ -283,6 +285,92 @@ export const useGenerateTitles = <
   TContext
 > => {
   return useMutation(getGenerateTitlesMutationOptions(options));
+};
+
+/**
+ * @summary Generate a full SEO bundle (titles, description, tags, hashtags) from one topic
+ */
+export const getGenerateSeoBundleUrl = () => {
+  return `/api/tools/seo-bundle`;
+};
+
+export const generateSeoBundle = async (
+  generateSeoBundleBody: GenerateSeoBundleBody,
+  options?: RequestInit,
+): Promise<GenerateSeoBundleResponse> => {
+  return customFetch<GenerateSeoBundleResponse>(getGenerateSeoBundleUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(generateSeoBundleBody),
+  });
+};
+
+export const getGenerateSeoBundleMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateSeoBundle>>,
+    TError,
+    { data: BodyType<GenerateSeoBundleBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof generateSeoBundle>>,
+  TError,
+  { data: BodyType<GenerateSeoBundleBody> },
+  TContext
+> => {
+  const mutationKey = ["generateSeoBundle"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof generateSeoBundle>>,
+    { data: BodyType<GenerateSeoBundleBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return generateSeoBundle(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GenerateSeoBundleMutationResult = NonNullable<
+  Awaited<ReturnType<typeof generateSeoBundle>>
+>;
+export type GenerateSeoBundleMutationBody = BodyType<GenerateSeoBundleBody>;
+export type GenerateSeoBundleMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Generate a full SEO bundle (titles, description, tags, hashtags) from one topic
+ */
+export const useGenerateSeoBundle = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateSeoBundle>>,
+    TError,
+    { data: BodyType<GenerateSeoBundleBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof generateSeoBundle>>,
+  TError,
+  { data: BodyType<GenerateSeoBundleBody> },
+  TContext
+> => {
+  return useMutation(getGenerateSeoBundleMutationOptions(options));
 };
 
 /**

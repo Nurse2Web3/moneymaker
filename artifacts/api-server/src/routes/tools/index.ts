@@ -12,7 +12,9 @@ import {
   GenerateIdeasBody,
   GenerateDescriptionBody,
   GenerateTagsBody,
+  GenerateSeoBundleBody,
 } from "@workspace/api-zod";
+import { scoreTitles } from "../../utils/titleScorer.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -95,12 +97,81 @@ Return ONLY a JSON array of 5 title strings. Example: ["Title 1", "Title 2", "Ti
 
     const text = message.content[0].type === "text" ? message.content[0].text : "[]";
     const jsonMatch = text.match(/\[[\s\S]*\]/);
-    const titles = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+    const titles: string[] = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+    const scoredTitles = scoreTitles(titles, CURRENT_YEAR);
 
-    res.json({ titles, dataSource: topVideos.length > 0 ? `Analyzed ${topVideos.length} top YouTube videos` : null });
+    res.json({
+      titles,
+      scoredTitles,
+      dataSource: topVideos.length > 0 ? `Analyzed ${topVideos.length} top YouTube videos` : null,
+    });
   } catch (err) {
     req.log.error({ err }, "Title generation failed");
     res.status(500).json({ error: "Title generation failed" });
+  }
+});
+
+router.post("/tools/seo-bundle", async (req, res): Promise<void> => {
+  const parsed = GenerateSeoBundleBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  const { topic, channelNiche } = parsed.data;
+
+  try {
+    const query = channelNiche ? `${topic} ${channelNiche}` : topic;
+    const topVideos = await fetchTopYouTubeVideos(query, 12);
+    const ytContext = topVideos.length > 0
+      ? `\n\nREAL YouTube data — top performing videos for "${query}":\n${topVideos.map((v, i) =>
+          `${i + 1}. "${v.title}" — ${Number(v.viewCount).toLocaleString()} views (${v.channel})`
+        ).join("\n")}`
+      : "";
+
+    // Single Claude call returns the full bundle as one JSON object — avoids
+    // 4 round-trips and keeps every output anchored to the same topic.
+    const message = await anthropic.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 4096,
+      messages: [{
+        role: "user",
+        content: `You are creating a complete SEO bundle for a YouTube video on the topic: "${topic}"${channelNiche ? ` in the ${channelNiche} niche` : ""}.${ytContext}
+
+Current year: ${CURRENT_YEAR} — never use a past year for time-sensitive references.
+
+Return a JSON object with these exact fields:
+{
+  "titles": [5 candidate titles, each <= 70 chars, ranked best to worst],
+  "description": "200-300 word YouTube description with a strong hook, what the viewer learns, 3-5 timestamps in mm:ss format, subscribe CTA, and 5-8 hashtags at the end",
+  "tags": [15 SEO tags mixing broad and long-tail, ordered by search-volume potential],
+  "hashtags": [5 hashtags including the # symbol]
+}
+
+Rules:
+- Titles must mirror the patterns of the top videos in the data above
+- Description must mention the main keyword in the first 2 sentences
+- Tags must include singular + plural + qualified forms of the main keyword
+- Hashtags must include #${topic.split(" ").join("")} variant where it reads naturally
+
+Return ONLY the JSON object, no commentary, no markdown fence.`,
+      }],
+    });
+
+    const text = message.content[0].type === "text" ? message.content[0].text : "{}";
+    const objMatch = text.match(/\{[\s\S]*\}/);
+    const bundle = objMatch ? JSON.parse(objMatch[0]) : {};
+
+    const titles = Array.isArray(bundle.titles) ? bundle.titles : [];
+    res.json({
+      titles: scoreTitles(titles, CURRENT_YEAR),
+      description: bundle.description ?? "",
+      tags: Array.isArray(bundle.tags) ? bundle.tags : [],
+      hashtags: Array.isArray(bundle.hashtags) ? bundle.hashtags : [],
+      dataSource: topVideos.length > 0 ? `Analyzed ${topVideos.length} top YouTube videos` : null,
+    });
+  } catch (err) {
+    req.log.error({ err }, "SEO bundle generation failed");
+    res.status(500).json({ error: "SEO bundle generation failed" });
   }
 });
 

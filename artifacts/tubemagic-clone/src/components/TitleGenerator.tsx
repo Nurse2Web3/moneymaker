@@ -1,10 +1,50 @@
 import { useState } from 'react';
 import SaveButton from './SaveButton';
 
+type ScoredTitle = {
+  title: string;
+  score: number;
+  warnings: string[];
+};
+
+function scoreColor(score: number): string {
+  if (score >= 75) return '#22c55e';     // green — strong
+  if (score >= 55) return '#eab308';     // amber — solid
+  if (score >= 35) return '#f97316';     // orange — weak
+  return '#ef4444';                       // red — rewrite
+}
+
+function ScoreBadge({ score }: { score: number }) {
+  const color = scoreColor(score);
+  return (
+    <span
+      title="0-100 CTR score: length, power words, numbers, brackets, year freshness, emotion"
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minWidth: 44,
+        height: 28,
+        padding: '0 8px',
+        borderRadius: 6,
+        background: `${color}1f`,
+        border: `1px solid ${color}55`,
+        color,
+        fontSize: 13,
+        fontWeight: 700,
+        flexShrink: 0,
+      }}
+    >
+      {score}
+    </span>
+  );
+}
+
 export default function TitleGenerator() {
   const [topic, setTopic] = useState('');
   const [niche, setNiche] = useState('');
   const [titles, setTitles] = useState<string[]>([]);
+  const [scoredTitles, setScoredTitles] = useState<ScoredTitle[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
@@ -14,6 +54,7 @@ export default function TitleGenerator() {
     if (!topic.trim()) return;
     setError('');
     setTitles([]);
+    setScoredTitles([]);
     setDataSource(null);
     setLoading(true);
     try {
@@ -25,6 +66,7 @@ export default function TitleGenerator() {
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       setTitles(data.titles || []);
+      setScoredTitles(Array.isArray(data.scoredTitles) ? data.scoredTitles : []);
       setDataSource(data.dataSource || null);
     } catch {
       setError('Failed to generate titles. Please try again.');
@@ -42,7 +84,7 @@ export default function TitleGenerator() {
   return (
     <div style={{ maxWidth: '700px', margin: '0 auto', padding: '40px 24px' }}>
       <h2 style={{ fontSize: '24px', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>Title Generator</h2>
-      <p style={{ fontSize: '17px', color: 'rgba(255,255,255,0.45)', marginBottom: '24px' }}>Get 5 viral YouTube titles instantly</p>
+      <p style={{ fontSize: '17px', color: 'rgba(255,255,255,0.45)', marginBottom: '24px' }}>Get 5 viral YouTube titles — scored 0-100 for CTR potential</p>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
         <input
@@ -78,17 +120,30 @@ export default function TitleGenerator() {
 
       {titles.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {titles.map((t, i) => (
-            <div key={i} style={{ background: '#111', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-              <span style={{ fontSize: '24px', color: '#fff', lineHeight: 1.4 }}>{t}</span>
-              <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-                <SaveButton type="title" label={t} content={t} meta={topic ? `Topic: ${topic}` : undefined} />
-                <button onClick={() => copy(t, i)} style={{ padding: '5px 12px', borderRadius: '6px', fontSize: '24px', background: copiedIdx === i ? '#22c55e20' : 'rgba(255,255,255,0.08)', color: copiedIdx === i ? '#22c55e' : 'rgba(255,255,255,0.5)', border: `1px solid ${copiedIdx === i ? '#22c55e40' : 'rgba(255,255,255,0.1)'}`, cursor: 'pointer' }}>
-                  {copiedIdx === i ? '✓' : 'Copy'}
-                </button>
+          {titles.map((t, i) => {
+            const scored = scoredTitles[i];
+            return (
+              <div key={i} style={{ background: '#111', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                    {scored && <ScoreBadge score={scored.score} />}
+                    <span style={{ fontSize: '24px', color: '#fff', lineHeight: 1.4 }}>{t}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                    <SaveButton type="title" label={t} content={t} meta={topic ? `Topic: ${topic}` : undefined} />
+                    <button onClick={() => copy(t, i)} style={{ padding: '5px 12px', borderRadius: '6px', fontSize: '24px', background: copiedIdx === i ? '#22c55e20' : 'rgba(255,255,255,0.08)', color: copiedIdx === i ? '#22c55e' : 'rgba(255,255,255,0.5)', border: `1px solid ${copiedIdx === i ? '#22c55e40' : 'rgba(255,255,255,0.1)'}`, cursor: 'pointer' }}>
+                      {copiedIdx === i ? '✓' : 'Copy'}
+                    </button>
+                  </div>
+                </div>
+                {scored && scored.warnings.length > 0 && (
+                  <ul style={{ margin: 0, paddingLeft: 18, color: 'rgba(255,255,255,0.45)', fontSize: 12, lineHeight: 1.5 }}>
+                    {scored.warnings.map((w, wi) => <li key={wi}>{w}</li>)}
+                  </ul>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

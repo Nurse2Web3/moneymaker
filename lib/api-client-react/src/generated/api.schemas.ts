@@ -44,8 +44,40 @@ export interface GenerateTitlesBody {
   channelNiche?: string;
 }
 
+export interface TitleScoreBreakdown {
+  length: number;
+  powerWords: number;
+  numbers: number;
+  bracket: number;
+  freshYear: number;
+  emotional: number;
+  casing: number;
+}
+
+export interface ScoredTitle {
+  title: string;
+  score: number;
+  breakdown: TitleScoreBreakdown;
+  warnings: string[];
+}
+
 export interface GenerateTitlesResponse {
   titles: string[];
+  scoredTitles?: ScoredTitle[];
+  dataSource?: string | null;
+}
+
+export interface GenerateSeoBundleBody {
+  topic: string;
+  channelNiche?: string;
+}
+
+export interface GenerateSeoBundleResponse {
+  titles: ScoredTitle[];
+  description: string;
+  tags: string[];
+  hashtags: string[];
+  dataSource?: string | null;
 }
 
 export interface GenerateIdeasBody {
