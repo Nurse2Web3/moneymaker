@@ -178,6 +178,69 @@ Return ONLY the JSON object, no commentary, no markdown fence.`,
   }
 });
 
+router.post("/tools/improve-title", async (req, res): Promise<void> => {
+  const { title, warnings, topic, channelNiche } = (req.body ?? {}) as {
+    title?: unknown;
+    warnings?: unknown;
+    topic?: unknown;
+    channelNiche?: unknown;
+  };
+
+  if (typeof title !== "string" || !title.trim()) {
+    res.status(400).json({ error: "title is required" });
+    return;
+  }
+
+  const warningsList =
+    Array.isArray(warnings) && warnings.length > 0
+      ? warnings.map(w => `- ${String(w)}`).join("\n")
+      : "- score is below the green threshold (75)";
+
+  try {
+    const message = await anthropic.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 512,
+      messages: [{
+        role: "user",
+        content: `Rewrite this YouTube title so it scores 75+ on a CTR rubric (green status).
+
+Current title: "${title}"
+${typeof topic === "string" && topic ? `Topic: ${topic}\n` : ""}${typeof channelNiche === "string" && channelNiche ? `Niche: ${channelNiche}\n` : ""}
+Issues to fix:
+${warningsList}
+
+Rules for the rewrite:
+- 50-60 characters is the YouTube SERP sweet spot — aim for that range (max 70)
+- Include at least one curiosity/power word (secret, truth, exposed, proven, hidden, never, finally, real, brutal, only, etc.)
+- Include a number when it fits naturally (year, count, dollar amount, step number)
+- Avoid 3+ ALL-CAPS words (looks spammy) — Title Case or sentence case is fine
+- Write in US English
+- Use the current year ${CURRENT_YEAR} only when time-sensitive
+- Keep the same core topic — do not change what the video is actually about
+- Output the rewritten title only — no commentary, no quotes, no markdown.`,
+      }],
+    });
+
+    const text = message.content[0].type === "text" ? message.content[0].text : "";
+    const newTitle = text
+      .trim()
+      .replace(/^["'`]+|["'`]+$/g, "")
+      .split("\n")[0]
+      .trim();
+
+    if (!newTitle) {
+      res.status(500).json({ error: "Empty title returned" });
+      return;
+    }
+
+    const [scored] = scoreTitles([newTitle], CURRENT_YEAR);
+    res.json(scored);
+  } catch (err) {
+    req.log.error({ err }, "Title improvement failed");
+    res.status(500).json({ error: "Title improvement failed" });
+  }
+});
+
 router.post("/tools/ideas", async (req, res): Promise<void> => {
   const parsed = GenerateIdeasBody.safeParse(req.body);
   if (!parsed.success) {

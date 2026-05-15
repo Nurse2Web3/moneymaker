@@ -47,6 +47,7 @@ export default function SeoBundle() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+  const [improvingIdx, setImprovingIdx] = useState<number | null>(null);
 
   async function generate() {
     if (!topic.trim()) return;
@@ -77,6 +78,35 @@ export default function SeoBundle() {
     navigator.clipboard.writeText(t).catch(() => {});
     setCopiedIdx(i);
     setTimeout(() => setCopiedIdx(null), 2000);
+  }
+
+  async function improveTitle(i: number) {
+    if (!bundle) return;
+    const target = bundle.titles[i];
+    setImprovingIdx(i);
+    setError('');
+    try {
+      const res = await fetch('/api/tools/improve-title', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: target.title,
+          warnings: target.warnings,
+          topic,
+          channelNiche: niche,
+        }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setBundle({
+        ...bundle,
+        titles: bundle.titles.map((t, idx) => (idx === i ? data : t)),
+      });
+    } catch {
+      setError('Failed to improve title. Please try again.');
+    } finally {
+      setImprovingIdx(null);
+    }
   }
 
   const sectionTitle: React.CSSProperties = {
@@ -144,6 +174,22 @@ export default function SeoBundle() {
                       <span style={{ fontSize: '24px', color: '#fff', lineHeight: 1.4 }}>{s.title}</span>
                     </div>
                     <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                      {s.score < 75 && (
+                        <button
+                          onClick={() => improveTitle(i)}
+                          disabled={improvingIdx !== null}
+                          title="Rewrite this title to score 75+ (green)"
+                          style={{
+                            padding: '5px 12px', borderRadius: '6px', fontSize: '14px', fontWeight: 600,
+                            background: improvingIdx === i ? 'rgba(34,197,94,0.15)' : 'rgba(34,197,94,0.1)',
+                            color: '#22c55e', border: '1px solid rgba(34,197,94,0.4)',
+                            cursor: improvingIdx !== null ? 'wait' : 'pointer',
+                            opacity: improvingIdx !== null && improvingIdx !== i ? 0.4 : 1,
+                          }}
+                        >
+                          {improvingIdx === i ? 'Improving…' : '↑ Improve'}
+                        </button>
+                      )}
                       <SaveButton type="title" label={s.title} content={s.title} meta={topic ? `Topic: ${topic}` : undefined} />
                       <button onClick={() => copyTitle(s.title, i)} style={{ padding: '5px 12px', borderRadius: '6px', fontSize: '24px', background: copiedIdx === i ? '#22c55e20' : 'rgba(255,255,255,0.08)', color: copiedIdx === i ? '#22c55e' : 'rgba(255,255,255,0.5)', border: `1px solid ${copiedIdx === i ? '#22c55e40' : 'rgba(255,255,255,0.1)'}`, cursor: 'pointer' }}>
                         {copiedIdx === i ? '✓' : 'Copy'}
