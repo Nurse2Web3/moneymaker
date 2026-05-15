@@ -85,6 +85,7 @@ ${ytContext}
 The current year is ${CURRENT_YEAR}. If the topic is time-sensitive, use ${CURRENT_YEAR} — never a past year.
 
 Rules:
+- ALL 5 titles MUST be written in US English, regardless of the topic's language or what language the top videos above are in
 - Max 70 characters each
 - Inspired by what's actually working in the real data above — borrow the patterns, not the words
 - Mix different angles: how-to, listicle, personal story, controversy, secret reveal
@@ -148,6 +149,7 @@ Return a JSON object with these exact fields:
 }
 
 Rules:
+- ALL output (titles, description, tags, hashtags) MUST be written in US English, regardless of the topic's language or what language the top videos above are in
 - Titles must mirror the patterns of the top videos in the data above
 - Description must mention the main keyword in the first 2 sentences
 - Tags must include singular + plural + qualified forms of the main keyword
