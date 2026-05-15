@@ -7,8 +7,10 @@
  */
 import type { ScoredTitle } from "./scoredTitle";
 
-export interface GenerateTitlesResponse {
-  titles: string[];
-  scoredTitles?: ScoredTitle[];
+export interface GenerateSeoBundleResponse {
+  titles: ScoredTitle[];
+  description: string;
+  tags: string[];
+  hashtags: string[];
   dataSource?: string | null;
 }

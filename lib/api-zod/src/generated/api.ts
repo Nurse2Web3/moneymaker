@@ -42,6 +42,56 @@ export const GenerateTitlesBody = zod.object({
 
 export const GenerateTitlesResponse = zod.object({
   titles: zod.array(zod.string()),
+  scoredTitles: zod
+    .array(
+      zod.object({
+        title: zod.string(),
+        score: zod.number(),
+        breakdown: zod.object({
+          length: zod.number(),
+          powerWords: zod.number(),
+          numbers: zod.number(),
+          bracket: zod.number(),
+          freshYear: zod.number(),
+          emotional: zod.number(),
+          casing: zod.number(),
+        }),
+        warnings: zod.array(zod.string()),
+      }),
+    )
+    .optional(),
+  dataSource: zod.string().nullish(),
+});
+
+/**
+ * @summary Generate a full SEO bundle (titles, description, tags, hashtags) from one topic
+ */
+export const GenerateSeoBundleBody = zod.object({
+  topic: zod.string(),
+  channelNiche: zod.string().optional(),
+});
+
+export const GenerateSeoBundleResponse = zod.object({
+  titles: zod.array(
+    zod.object({
+      title: zod.string(),
+      score: zod.number(),
+      breakdown: zod.object({
+        length: zod.number(),
+        powerWords: zod.number(),
+        numbers: zod.number(),
+        bracket: zod.number(),
+        freshYear: zod.number(),
+        emotional: zod.number(),
+        casing: zod.number(),
+      }),
+      warnings: zod.array(zod.string()),
+    }),
+  ),
+  description: zod.string(),
+  tags: zod.array(zod.string()),
+  hashtags: zod.array(zod.string()),
+  dataSource: zod.string().nullish(),
 });
 
 /**
