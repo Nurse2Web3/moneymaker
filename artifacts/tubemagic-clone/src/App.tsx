@@ -13,7 +13,7 @@ import TitleGenerator from './components/TitleGenerator';
 import SeoBundle from './components/SeoBundle';
 import IdeaGenerator from './components/IdeaGenerator';
 import DescriptionGenerator from './components/DescriptionGenerator';
-import TagGenerator from './components/TagGenerator';
+import KeywordAnalyzer from './components/KeywordAnalyzer';
 import ScriptImprover from './components/ScriptImprover';
 import HookGenerator from './components/HookGenerator';
 import ThumbnailGenerator from './components/ThumbnailGenerator';
@@ -35,7 +35,7 @@ type Page =
   | 'title-generator'
   | 'seo-bundle'
   | 'description-generator'
-  | 'tag-generator'
+  | 'keyword-analyzer'
   | 'thumbnail-generator'
   | 'thumbnail-maker'
   | 'niche-analyzer'
@@ -74,7 +74,7 @@ const TOOL_GROUPS = [
       { id: 'title-generator' as Page, label: 'Title Generator', icon: '✏️', desc: '5 viral titles — scored 0-100 for CTR' },
       { id: 'seo-bundle' as Page, label: 'SEO Bundle', icon: '📦', desc: 'Titles + description + tags + hashtags in one call' },
       { id: 'description-generator' as Page, label: 'Description', icon: '📄', desc: 'SEO description + timestamps' },
-      { id: 'tag-generator' as Page, label: 'Tags', icon: '🏷️', desc: '20 high-SEO tags' },
+      { id: 'keyword-analyzer' as Page, label: 'Keyword Analyzer', icon: '🔍', desc: 'Score keywords by real YouTube demand + competition' },
       { id: 'thumbnail-maker' as Page, label: 'Thumbnail Maker', icon: '🎨', desc: 'Drag-and-drop MrBeast-style editor' },
       { id: 'thumbnail-generator' as Page, label: 'Thumbnail Text', icon: '🖼️', desc: 'High-CTR text overlay ideas' },
     ],
@@ -217,7 +217,7 @@ export default function App() {
           <ScriptWritingSection onTryIt={() => setPage('script-writer')} />
           <VideoIdeasSection onTryIt={() => setPage('idea-generator')} />
           <ContentToolsSection />
-          <UploadOptimizeSection onTryTitles={() => setPage('title-generator')} onTryDesc={() => setPage('description-generator')} onTryTags={() => setPage('tag-generator')} />
+          <UploadOptimizeSection onTryTitles={() => setPage('title-generator')} onTryDesc={() => setPage('description-generator')} onTryTags={() => setPage('keyword-analyzer')} />
           <BonusToolsSection />
           <CTASection onGetStarted={() => setPage('script-writer')} />
           <FAQSection />
@@ -236,7 +236,7 @@ export default function App() {
         {page === 'title-generator' && <TitleGenerator />}
         {page === 'seo-bundle' && <SeoBundle />}
         {page === 'description-generator' && <DescriptionGenerator />}
-        {page === 'tag-generator' && <TagGenerator />}
+        {page === 'keyword-analyzer' && <KeywordAnalyzer />}
         {page === 'thumbnail-maker' && <ThumbnailMaker />}
         {page === 'thumbnail-generator' && <ThumbnailGenerator />}
         {page === 'channel-cloner' && <ChannelCloner />}

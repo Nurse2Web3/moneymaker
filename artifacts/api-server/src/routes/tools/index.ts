@@ -3,7 +3,8 @@ import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { generateImageBuffer, editImages } from "@workspace/integrations-openai-ai-server/image";
 import { writeFileSync, unlinkSync, mkdtempSync } from "fs";
 import { tmpdir } from "os";
-import { fetchTopYouTubeVideos } from "../../utils/youtube.js";
+import { fetchTopYouTubeVideos, fetchYouTubeSuggestions, fetchChannelSubscriberMap } from "../../utils/youtube.js";
+import { scoreKeyword, buildSignal } from "../../utils/keywordScorer.js";
 import { execFile } from "child_process";
 import { promisify } from "util";
 import path from "path";
@@ -175,6 +176,99 @@ Return ONLY the JSON object, no commentary, no markdown fence.`,
   } catch (err) {
     req.log.error({ err }, "SEO bundle generation failed");
     res.status(500).json({ error: "SEO bundle generation failed" });
+  }
+});
+
+router.post("/tools/keyword-analyzer", async (req, res): Promise<void> => {
+  const { seedKeyword, channelNiche, maxKeywords } = (req.body ?? {}) as {
+    seedKeyword?: unknown;
+    channelNiche?: unknown;
+    maxKeywords?: unknown;
+  };
+
+  if (typeof seedKeyword !== "string" || !seedKeyword.trim()) {
+    res.status(400).json({ error: "seedKeyword is required" });
+    return;
+  }
+
+  // Cap analysis depth — each keyword costs ~101 YouTube quota units
+  // (search.list = 100, videos.list = 1). At 12 keywords that's ~1.2K of
+  // the 10K daily quota, which leaves headroom for other tools.
+  const cap = Math.max(1, Math.min(15, Number(maxKeywords) || 12));
+
+  try {
+    const seed = seedKeyword.trim();
+    const niche = typeof channelNiche === "string" ? channelNiche.trim() : "";
+
+    // 1) Pull real autocomplete suggestions from YouTube + Claude-generated variants
+    const [autocomplete, claudeVariants] = await Promise.all([
+      fetchYouTubeSuggestions(seed),
+      anthropic.messages.create({
+        model: "claude-sonnet-4-6",
+        max_tokens: 1024,
+        messages: [{
+          role: "user",
+          content: `Generate 10 related long-tail YouTube search keywords for the seed keyword "${seed}"${niche ? ` in the "${niche}" niche` : ""}.
+
+Mix:
+- broader head terms a beginner might type
+- specific long-tail variants ("how to ___", "best ___ for ___", "why ___")
+- question-style phrasings
+- year-anchored if relevant (use ${CURRENT_YEAR}, never a past year)
+
+Rules:
+- Each must be a phrase a real viewer would type into YouTube search
+- US English only
+- Do NOT repeat the seed verbatim
+- Return ONLY a JSON array of strings, no commentary, no markdown.`,
+        }],
+      }),
+    ]);
+
+    const claudeText = claudeVariants.content[0].type === "text" ? claudeVariants.content[0].text : "[]";
+    const claudeMatch = claudeText.match(/\[[\s\S]*\]/);
+    const claudeKeywords: string[] = claudeMatch ? JSON.parse(claudeMatch[0]) : [];
+
+    // Dedupe (case-insensitive) and put the seed first so it's always scored
+    const seen = new Set<string>();
+    const candidates: string[] = [];
+    for (const k of [seed, ...autocomplete, ...claudeKeywords]) {
+      const norm = k.trim().toLowerCase();
+      if (!norm || seen.has(norm)) continue;
+      seen.add(norm);
+      candidates.push(k.trim());
+      if (candidates.length >= cap) break;
+    }
+
+    // 2) For each candidate, fetch top 10 results in parallel
+    const allVideos = await Promise.all(
+      candidates.map(k => fetchTopYouTubeVideos(k, 10)),
+    );
+
+    // 3) Batch-fetch subscriber counts for every channel that appeared
+    const everyChannelId = Array.from(
+      new Set(allVideos.flat().map(v => v.channelId).filter(Boolean)),
+    );
+    const subscribersByChannel: Record<string, number> = {};
+    // channels.list accepts up to 50 IDs per call
+    for (let i = 0; i < everyChannelId.length; i += 50) {
+      const batch = everyChannelId.slice(i, i + 50);
+      Object.assign(subscribersByChannel, await fetchChannelSubscriberMap(batch));
+    }
+
+    // 4) Score every keyword
+    const scored = candidates.map((k, idx) =>
+      scoreKeyword(buildSignal(k, allVideos[idx], subscribersByChannel)),
+    ).sort((a, b) => b.score - a.score);
+
+    res.json({
+      seedKeyword: seed,
+      keywords: scored,
+      dataSource: `Analyzed top 10 YouTube results for ${candidates.length} keywords`,
+    });
+  } catch (err) {
+    req.log.error({ err }, "Keyword analysis failed");
+    res.status(500).json({ error: "Keyword analysis failed" });
   }
 });
 

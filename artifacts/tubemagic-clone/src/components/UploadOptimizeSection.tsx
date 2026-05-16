@@ -9,7 +9,7 @@ export default function UploadOptimizeSection({ onTryTitles, onTryDesc, onTryTag
     { title: 'Warp Upload Optimizer', desc: 'Input your unlisted video and get: Optimized titles, tags, and descriptions instantly.', icon: '⚡', onClick: onTryTitles },
     { title: 'Title Generator', desc: 'Get 3 viral titles for any video or keyword.', icon: '✏️', onClick: onTryTitles },
     { title: 'Description Generator', desc: 'Auto-generate YouTube descriptions with timestamps.', icon: '📄', onClick: onTryDesc },
-    { title: 'Tag Generator & Organizer', desc: 'Create high-SEO tags and organize/delete them easily.', icon: '🏷️', onClick: onTryTags },
+    { title: 'Keyword Analyzer', desc: 'Score real YouTube keywords by demand, competition, and freshness.', icon: '🔍', onClick: onTryTags },
   ];
 
   return (
