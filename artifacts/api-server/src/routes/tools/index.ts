@@ -93,14 +93,20 @@ Rules:
 - Each title must feel dramatically different from the others
 - Base view potential estimates on the real data you see above
 
-Every title MUST score 75+ on this CTR rubric. Stack at least 5 of these signals in EACH title:
-- 50-60 char length (avoid sub-45 or over-65)
-- 2+ curiosity/power words from: secret, truth, exposed, revealed, shocking, hidden, warning, never, stop, before, after, proven, ultimate, best, worst, only, real, brutal, you, your
-- a specific number or dollar amount (e.g. "5", "$180K", "401K")
-- ONE bracket or paren element, e.g. "(Most People Never Check)" or "[${CURRENT_YEAR} Update]"
-- the year ${CURRENT_YEAR} when relevant
-- 1+ emotional word from: lost, saved, broke, betrayed, fooled, scammed, trapped, freedom, regret, painful, struggle, wish, wrong
-- optional: ONE strategic ALL-CAPS word for emphasis (never more than 2 — looks spammy)
+Every title MUST score 75+ on this CTR rubric.
+
+REQUIRED in EVERY title (non-negotiable — title fails review if any are missing):
+- 50-60 character length (sweet spot — count carefully)
+- a specific number or dollar amount (e.g. "5", "$180K", "401K", "45")
+- 2+ curiosity/power words from: secret, truth, exposed, revealed, shocking, hidden, warning, never, stop, before, after, proven, ultimate, best, worst, only, real, brutal, you, your, actually, finally
+- AT LEAST TWO of these three (this is what unlocks green; one is not enough):
+  1. A bracket or paren element, e.g. "(Most People Never Check)", "[${CURRENT_YEAR} Update]", "(Step-by-Step)"
+  2. The year ${CURRENT_YEAR}
+  3. An emotional word from: lost, saved, broke, betrayed, fooled, scammed, trapped, freedom, regret, painful, struggle, wish, wrong, ruined, broke, drained, wreck
+
+OPTIONAL boost: ONE strategic ALL-CAPS word for emphasis (never 2+ — looks spammy).
+
+Before returning, mentally score each title against the rubric. If any title only has ONE of {bracket, year, emotional}, rewrite it to include a second.
 
 Return ONLY a JSON array of 5 title strings. Example: ["Title 1", "Title 2", "Title 3", "Title 4", "Title 5"]`,
       }],
