@@ -46,9 +46,25 @@ export default function TitleGenerator() {
   const [titles, setTitles] = useState<string[]>([]);
   const [scoredTitles, setScoredTitles] = useState<ScoredTitle[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const [dataSource, setDataSource] = useState<string | null>(null);
+
+  async function fetchTitles(): Promise<{ titles: string[]; scoredTitles: ScoredTitle[]; dataSource: string | null } | null> {
+    const res = await fetch('/api/tools/titles', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ topic, channelNiche: niche }),
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    return {
+      titles: data.titles || [],
+      scoredTitles: Array.isArray(data.scoredTitles) ? data.scoredTitles : [],
+      dataSource: data.dataSource || null,
+    };
+  }
 
   async function generate() {
     if (!topic.trim()) return;
@@ -58,20 +74,33 @@ export default function TitleGenerator() {
     setDataSource(null);
     setLoading(true);
     try {
-      const res = await fetch('/api/tools/titles', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic, channelNiche: niche }),
-      });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      setTitles(data.titles || []);
-      setScoredTitles(Array.isArray(data.scoredTitles) ? data.scoredTitles : []);
-      setDataSource(data.dataSource || null);
+      const data = await fetchTitles();
+      if (data) {
+        setTitles(data.titles);
+        setScoredTitles(data.scoredTitles);
+        setDataSource(data.dataSource);
+      }
     } catch {
       setError('Failed to generate titles. Please try again.');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function generateMore() {
+    if (!topic.trim() || loadingMore) return;
+    setError('');
+    setLoadingMore(true);
+    try {
+      const data = await fetchTitles();
+      if (data) {
+        setTitles(prev => [...prev, ...data.titles]);
+        setScoredTitles(prev => [...prev, ...data.scoredTitles]);
+      }
+    } catch {
+      setError('Failed to load more titles. Please try again.');
+    } finally {
+      setLoadingMore(false);
     }
   }
 
@@ -144,6 +173,13 @@ export default function TitleGenerator() {
               </div>
             );
           })}
+          <button
+            onClick={generateMore}
+            disabled={loadingMore || loading}
+            style={{ marginTop: 4, padding: '12px', borderRadius: '10px', background: 'transparent', color: '#fff', fontWeight: 600, fontSize: '15px', cursor: (loadingMore || loading) ? 'not-allowed' : 'pointer', opacity: (loadingMore || loading) ? 0.5 : 1, border: '1px solid rgba(255,255,255,0.15)' }}
+          >
+            {loadingMore ? 'Loading 5 more...' : '↻ Show 5 More'}
+          </button>
         </div>
       )}
     </div>
